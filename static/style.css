@@ -1,32 +1,31 @@
-/* 日日：手帳風。方格紙 + 藍黑墨水 + 朱紅印章（今日一字）。印章是整頁唯一的強調色。 */
+/* 日日：和風手帳。生成りの方格紙 + 粉圓 + 朱色の日付印（今日一字）。日付印是整頁唯一的強調色。 */
 
 :root {
-  --paper: #F6F7F4;
-  --grid: #DFE6ED;
-  --ink: #22304A;
-  --ink-soft: #5E6B82;
-  --line: #C6D0DB;
-  --seal: #B3322B;
-  --seal-text: #FBF7F2;
-  --wash: #2E4A7A;          /* 日曆心情的墨水色：分數越高越濃 */
+  --paper: #F7F5EF;         /* 生成り */
+  --grid: #E4E1D8;
+  --ink: #2B3A55;
+  --ink-soft: #6B7488;
+  --line: #D3CFC4;
+  --seal: #D9472B;          /* 朱色 */
+  --wash: #2E5C8A;          /* 藍色：日曆心情，分數越高越濃 */
   --leaf: #5E8C61;
   --pot: #8FB1A9;
   --pot-rim: #7A9E96;
-  --kai: "Kaiti TC", "STKaiti", "BiauKai", "DFKai-SB", "標楷體", serif;
-  --sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  /* 全站只用一種字。沒網路時退回系統字體 */
+  --kai: "Huninn", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --sans: var(--kai);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   /* 夜晚的書桌 */
   :root {
-    --paper: #1A2030;
-    --grid: #232B3F;
-    --ink: #E3E7EF;
-    --ink-soft: #9AA5BA;
-    --line: #36425C;
-    --seal: #D9584E;
-    --seal-text: #1A2030;
-    --wash: #4C7FC9;
+    --paper: #1C2130;
+    --grid: #252B3C;
+    --ink: #E6E8EE;
+    --ink-soft: #9CA3B4;
+    --line: #394259;
+    --seal: #E8664C;
+    --wash: #5D8CC0;
     --leaf: #82B286;
     --pot: #5F7F78;
     --pot-rim: #4E6B65;
@@ -140,21 +139,21 @@ input[type=range] { width: 100%; accent-color: var(--ink); }
 .song-picked p { margin: 0 0 .5rem; }
 audio { height: 2rem; max-width: 100%; }
 
-/* ---------- 印章：今日一字 ---------- */
+/* ---------- 日付印：今日一字 + 日期 ---------- */
+/* かすれ（朱肉不均勻）用 base.html 裡的 SVG filter #kasure */
+.seal, .cal-seal, .mini-seal { filter: url(#kasure); color: var(--seal); border: 2.5px solid var(--seal); border-radius: 50%; }
 .seal {
-  flex: none; width: 5.5rem; height: 5.5rem;
-  display: grid; place-items: center;
-  font-family: var(--kai); font-size: 3.4rem; line-height: 1;
-  color: var(--seal-text); background: var(--seal);
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 3px var(--seal), inset 0 0 0 5px var(--seal-text);
-  transform: rotate(-4deg);
+  flex: none; width: 5.8rem; height: 5.8rem;
+  display: grid; grid-template-rows: 1.35fr auto .65fr; text-align: center; overflow: hidden;
+  transform: rotate(-6deg);
 }
+.seal-w { align-self: end; font-size: 2.1rem; line-height: 1.15; }
+.seal-d { border-block: 1.5px solid var(--seal); font-size: .8rem; line-height: 1.55; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .is-stamping { animation: stamp .55s cubic-bezier(.2, .9, .3, 1.2) both; }
 @keyframes stamp {
-  0% { transform: rotate(-4deg) scale(1.8); opacity: 0; }
-  60% { transform: rotate(-4deg) scale(.94); opacity: 1; }
-  100% { transform: rotate(-4deg) scale(1); }
+  0% { transform: rotate(-6deg) scale(1.8); opacity: 0; }
+  60% { transform: rotate(-6deg) scale(.94); opacity: 1; }
+  100% { transform: rotate(-6deg) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) { .is-stamping { animation: none; } }
 
@@ -199,11 +198,11 @@ audio { height: 2rem; max-width: 100%; }
 .cal a { display: block; height: 100%; text-decoration: none; }
 .cal-date { position: absolute; top: .2rem; left: .35rem; font-size: .75rem; color: var(--ink-soft); }
 .has-entry .cal-date { color: var(--ink); background: var(--paper); padding: 0 .25rem; border-radius: 2px; }
+.has-entry .cal-seal { background: var(--paper); }
 .cal-seal {
-  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -42%) rotate(-4deg);
-  width: 2.3rem; height: 2.3rem; display: grid; place-items: center;
-  font-family: var(--kai); font-size: 1.5rem; line-height: 1;
-  background: var(--seal); color: var(--seal-text); border-radius: 4px;
+  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -42%) rotate(-6deg);
+  width: 2.4rem; height: 2.4rem; display: grid; place-items: center;
+  font-size: 1.2rem; line-height: 1; border-width: 1.5px;
 }
 .cal-art { position: absolute; right: .25rem; bottom: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 2px; }
 @media (max-width: 30rem) {
@@ -222,8 +221,7 @@ audio { height: 2rem; max-width: 100%; }
 .week-list a { display: flex; gap: 1rem; align-items: center; padding: .75rem 0; text-decoration: none; }
 .mini-seal {
   flex: none; width: 2.2rem; height: 2.2rem; display: grid; place-items: center;
-  font-family: var(--kai); font-size: 1.35rem; line-height: 1;
-  background: var(--seal); color: var(--seal-text); border-radius: 4px; transform: rotate(-4deg);
+  font-size: 1.1rem; line-height: 1; border-width: 1.5px; transform: rotate(-6deg);
 }
 .review-box { margin: 1.5rem 0; padding: 1.5rem; background: var(--paper); border: 1px solid var(--line); }
 .review-text { font-family: var(--kai); font-size: 1.25rem; line-height: 1.9; white-space: pre-wrap; margin: 0 0 1rem; }

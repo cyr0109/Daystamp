@@ -14,7 +14,9 @@
 
     {% if entry %}
     <section class="done" aria-label="今天的紀錄">
-      <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今日一字">{{ entry.word or '今' }}</div>
+      <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今日一字">
+        <span class="seal-w">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
+      </div>
       <div>
         <p class="done-win">{{ entry.small_win }}</p>
         <p class="meta">心情 {{ entry.mood }}，{{ entry.emotion }}{% if entry.weather %}　{{ entry.weather }}{% endif %}</p>
