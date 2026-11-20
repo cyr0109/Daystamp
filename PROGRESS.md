@@ -12,7 +12,7 @@
 - 模型：`qwen3.5:4b`（`ai.py` 的 `MODEL`，可以用 `DIARY_MODEL` 覆蓋）
   - `think=False`：思考模式會跑超過 90 秒
   - `keep_alive="1m"`，並限制 `num_predict`，避免電腦卡
-  - 9b 也還在本機，但 4b 快一倍、記憶體減半，修好 prompt 之後品質夠用
+  - 9b 試過，4b 快一倍、記憶體減半，修好 prompt 之後品質夠用。9b 已從本機刪掉（2026-11-21）
 - 測試：`.venv/bin/python -m unittest discover tests`（13 個，全過）
 - 看畫面：用假資料另開一個 port 5051 的伺服器，再用 headless Chrome 截圖（`--blink-settings=preferredColorScheme=1` 是淺色）。headless 視窗最窄只到 500px，比這更窄的截圖會被切掉，不是網頁壞掉
 
