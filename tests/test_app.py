@@ -11,22 +11,16 @@ import app as diary
 
 class AIGuardTest(unittest.TestCase):
     def test_keeps_valid_suggestion(self):
-        self.assertEqual(ai.clean_suggestion('{"emotion": "平靜", "word": "暖"}'), {"emotion": "平靜", "word": "暖"})
-        self.assertEqual(ai.clean_suggestion('```json\n{"emotion": "感恩", "word": "暖"}\n```'), {"emotion": "感恩", "word": "暖"})
+        self.assertEqual(ai.clean_suggestion('{"emotion": "平靜"}'), {"emotion": "平靜"})
+        self.assertEqual(ai.clean_suggestion('```json\n{"emotion": "感恩"}\n```'), {"emotion": "感恩"})
 
     def test_drops_anything_off_the_whitelist(self):
-        for raw in ['{"emotion": "rm -rf /", "word": "<script>"}', '{"emotion": "開心", "word": "很好"}',
-                    'not json', '[1, 2]', '{"word": 5}']:
-            out = ai.clean_suggestion(raw)
-            self.assertTrue(out["emotion"] is None or out["emotion"] in ai.EMOTIONS)
-            self.assertTrue(out["word"] is None or ai.is_word(out["word"]))
-        self.assertEqual(ai.clean_suggestion('{"emotion": "感恩", "word": "感恩"}')["word"], "感恩")
-        self.assertIsNone(ai.clean_suggestion('{"emotion": "感恩", "word": "很感恩"}')["word"])
-        self.assertEqual(ai.clean_suggestion('{"emotion": "rm -rf /", "word": "<script>"}'), {"emotion": None, "word": None})
+        for raw in ['{"emotion": "rm -rf /"}', '{"emotion": "快樂"}', 'not json', '[1, 2]', '{"emotion": 5}']:
+            self.assertEqual(ai.clean_suggestion(raw), {"emotion": None})
 
     def test_ai_failure_never_raises(self):
         with mock.patch.object(ai, "_chat", side_effect=ConnectionError("ollama down")):
-            self.assertEqual(ai.suggest({"small_win": "x"}), {"emotion": None, "word": None})
+            self.assertEqual(ai.suggest({"small_win": "x"}), {"emotion": None})
             self.assertIsNone(ai.weekly_review([{"day": "2026-01-01", "mood": 5, "emotion": "平靜", "small_win": "x"}], 0))
 
 
@@ -56,7 +50,7 @@ class AppTest(unittest.TestCase):
         os.remove(self.db)
 
     def entry(self, **kw):
-        body = {"day": self.today, "small_win": "摺好衣服", "mood": 7, "emotion": "平靜", "word": "暖"}
+        body = {"day": self.today, "small_win": "摺好衣服", "mood": 7, "emotion": "平靜"}
         body.update(kw)
         return self.c.post("/api/entry", json=body)
 
@@ -75,7 +69,7 @@ class AppTest(unittest.TestCase):
     def test_week_seals_show_saved_days(self):
         self.entry()
         html = self.c.get("/").get_data(as_text=True)
-        self.assertIn(f'<a href="/day/{self.today}" class="mini-seal" aria-label="{self.today}">暖</a>', html)
+        self.assertIn(f'<a href="/day/{self.today}" class="mini-seal two" aria-label="{self.today}">平靜</a>', html)
         self.assertEqual(html.count('mini-seal is-empty'), 6)   # 只寫了今天，其他 6 天是空圓
 
     def test_several_small_wins(self):
@@ -116,9 +110,6 @@ class AppTest(unittest.TestCase):
         self.assertEqual(self.entry(day="2020-01-01").status_code, 400)
         self.assertEqual(self.entry(mood=11).status_code, 400)
         self.assertEqual(self.entry(emotion="快樂").status_code, 400)
-        self.assertEqual(self.entry(word="ab").status_code, 400)
-        self.assertEqual(self.entry(word="很感恩").status_code, 400)
-        self.assertEqual(self.entry(word="感恩").status_code, 200)
         self.assertEqual(self.entry(small_win="  ").status_code, 400)
         self.entry(song_artwork="https://evil.example.com/x.jpg")
         with diary.app.app_context():

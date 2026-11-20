@@ -89,7 +89,7 @@ def fetch_weather():
 def write_markdown(e):
     """每次存檔都寫一份 Markdown 備份，diary.db 壞了也還有。"""
     os.makedirs(DIARY_FOLDER, exist_ok=True)
-    lines = [f"# {e['day']}" + (f"　{e['word']}" if e.get("word") else ""), ""]
+    lines = [f"# {e['day']}", ""]
     lines.append(f"- 心情：{e['mood']}/10　{e['emotion']}")
     if e.get("weather"):
         lines.append(f"- 天氣：{e['weather']}")
@@ -183,9 +183,9 @@ def today_page():
     memory_days_ago = (today - date.fromisoformat(memory["day"])).days if memory else None
     # 這週一～日的印章列
     start = week_start(today)
-    words = {r["day"]: r["word"] for r in db.execute("SELECT day, word FROM entries WHERE day BETWEEN ? AND ?",
-                                                     (str(start), str(start + timedelta(days=6))))}
-    week = [{"day": str(d), "has": str(d) in words, "word": words.get(str(d)), "future": d > today}
+    emos = {r["day"]: r["emotion"] for r in db.execute("SELECT day, emotion FROM entries WHERE day BETWEEN ? AND ?",
+                                                       (str(start), str(start + timedelta(days=6))))}
+    week = [{"day": str(d), "has": str(d) in emos, "emotion": emos.get(str(d)), "future": d > today}
             for d in (start + timedelta(days=i) for i in range(7))]
     return render_template("today.html", day=str(today), entry=get_entry(today), due=due, week=week,
                            memory=memory, memory_days_ago=memory_days_ago, plant=plant_state(today),
@@ -265,8 +265,8 @@ def search_page():
         rows = get_db().execute(
             """SELECT * FROM entries WHERE small_win LIKE ? OR note LIKE ? OR breakfast LIKE ?
                OR lunch LIKE ? OR dinner LIKE ? OR song_title LIKE ? OR song_artist LIKE ?
-               OR word = ? OR emotion = ? ORDER BY day DESC LIMIT 100""",
-            (like, like, like, like, like, like, like, q, q)).fetchall()
+               OR emotion = ? ORDER BY day DESC LIMIT 100""",
+            (like, like, like, like, like, like, like, q)).fetchall()
     hits = []
     for r in rows:
         win = split_hit(r["small_win"].replace("\n", "、"), q)
@@ -314,9 +314,6 @@ def save_entry():
     emotion = data.get("emotion")
     if emotion not in ai.EMOTIONS:
         abort(400, "請選一個情緒")
-    word = text(data, "word", 2)
-    if word and not ai.is_word(word):
-        abort(400, "今日一字要是 1～2 個中文字")
 
     # 小事可以好幾件，一行一件；去掉每行前後空白和空行
     small_win = "\n".join(s for s in (l.strip() for l in text(data, "small_win", 1000, required=True).split("\n")) if s)
@@ -324,7 +321,7 @@ def save_entry():
     old = get_entry(day)
     e = {
         "day": str(day), "small_win": small_win, "mood": mood,
-        "emotion": emotion, "word": word,
+        "emotion": emotion,
         "breakfast": text(data, "breakfast", 100), "lunch": text(data, "lunch", 100),
         "dinner": text(data, "dinner", 100),
         "song_title": text(data, "song_title", 200), "song_artist": text(data, "song_artist", 200),
@@ -386,7 +383,7 @@ def make_review():
                           (str(start), str(end))).fetchone()[0]
     content = ai.weekly_review(entries, answered)
     if not content:
-        return jsonify(error="AI 沒有回應。確認 Ollama 有開，再按一次。"), 503
+        return jsonify(error="小芽沒有回應。確認 Ollama 有開，再按一次。"), 503
     db.execute("INSERT OR REPLACE INTO weekly_reviews (week_start, content, created_at) VALUES (?, ?, ?)",
                (str(start), content, datetime.now().isoformat(timespec="seconds")))
     db.commit()

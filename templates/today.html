@@ -14,8 +14,8 @@
 
     {% if entry %}
     <section class="done" aria-label="今天的紀錄">
-      <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今日一字">
-        <span class="seal-w{% if (entry.word or '')|length == 2 %} two{% endif %}">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
+      <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今天的情緒">
+        <span class="seal-w two">{{ entry.emotion }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
       </div>
       <div>
         {% set ws = entry.small_win|wins %}
@@ -29,7 +29,7 @@
     <ol class="week-seals" aria-label="這週的印章">
     {% for d in week %}
       <li class="{% if d.future %}is-future{% endif %}{% if d.day == day %}is-today{% endif %}">
-        {% if d.has %}<a href="/day/{{ d.day }}" class="mini-seal{% if (d.word or '')|length == 2 %} two{% endif %}" aria-label="{{ d.day }}">{{ d.word or '・' }}</a>
+        {% if d.has %}<a href="/day/{{ d.day }}" class="mini-seal two" aria-label="{{ d.day }}">{{ d.emotion }}</a>
         {% else %}<span class="mini-seal is-empty"></span>{% endif %}
         <span class="meta">{{ "一二三四五六日"[loop.index0] }}</span>
       </li>
@@ -38,7 +38,7 @@
     {% endif %}
 
     <form id="flow" class="flow" {% if entry %}hidden{% endif %} novalidate>
-      <p class="progress" aria-live="polite"><span id="step-no">1</span> / 7</p>
+      <p class="progress" aria-live="polite"><span id="step-no">1</span> / 6</p>
 
       <section class="step" data-key="small_win">
         <label class="q" for="small_win">今天做到了什麼小事？</label>
@@ -91,12 +91,6 @@
         </div>
       </section>
 
-      <section class="step" data-key="word" hidden>
-        <label class="q" for="word">用一兩個字形容今天</label>
-        <p id="ai-word" class="hint" aria-live="polite"></p>
-        <input id="word" class="word-input" maxlength="2" autocomplete="off">
-      </section>
-
       <p id="flow-error" class="error" role="alert"></p>
       <div class="flow-nav">
         <button type="button" id="back" class="link-button">上一題</button>
@@ -143,7 +137,7 @@ function show(i) {
   $('next').textContent = at === steps.length - 1 ? '存起來' : (isOptional() ? '下一題（可跳過）' : '下一題');
   $('flow-error').textContent = '';
   const key = steps[at].dataset.key;
-  if (key === 'emotion' || key === 'word') askAI();
+  if (key === 'emotion') askAI();
   steps[at].querySelector('textarea, input:not([type=radio])')?.focus();
 }
 const isOptional = () => ['meals', 'song', 'note'].includes(steps[at].dataset.key);
@@ -156,7 +150,7 @@ function collect() {
     breakfast: v('breakfast'), lunch: v('lunch'), dinner: v('dinner'),
     song_title: song?.title || v('song-q'), song_artist: song?.artist || '',
     song_artwork: song?.artwork || '', song_preview: song?.preview || '',
-    note: v('note'), emotion: form.emotion.value, word: v('word'),
+    note: v('note'), emotion: form.emotion.value,
   };
 }
 
@@ -208,20 +202,18 @@ async function askAI() {
   const sig = JSON.stringify([data.small_win, data.mood, data.note, data.breakfast, data.lunch, data.dinner, data.song_title]);
   if (sig === suggestedFor) return;
   suggestedFor = sig;
-  $('ai-emotion').textContent = $('ai-word').textContent = 'AI 正在讀今天的紀錄……';
+  $('ai-emotion').textContent = '小芽正在讀今天的紀錄……';
   let s = {};
   try { s = await postJSON('/api/suggest', data); } catch (e) {}
   // 空的就直接填；你已經填了別的，就給一個「換成」按鈕，不偷偷蓋掉
   if (s.emotion && !form.emotion.value) form.querySelector(`input[value="${s.emotion}"]`).checked = true;
-  if (s.word && !$('word').value) $('word').value = s.word;
   hint('ai-emotion', s.emotion, () => form.emotion.value, v => form.querySelector(`input[value="${v}"]`).checked = true, '自己選一個就好。');
-  hint('ai-word', s.word, () => $('word').value, v => $('word').value = v, '想一兩個字就好。');
 }
 function hint(id, suggestion, current, apply, fallback) {
   const el = $(id);
   if (!suggestion) { el.textContent = fallback; return; }
-  if (suggestion === current()) { el.textContent = `AI 也覺得是「${suggestion}」。`; return; }
-  el.textContent = `你選了「${current()}」，AI 建議「${suggestion}」。`;
+  if (suggestion === current()) { el.textContent = `小芽也覺得是「${suggestion}」。`; return; }
+  el.textContent = `你選了「${current()}」，小芽覺得是「${suggestion}」。`;
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'link-button'; b.textContent = `換成「${suggestion}」`;
   b.addEventListener('click', () => { apply(suggestion); hint(id, suggestion, current, apply, fallback); });
@@ -282,7 +274,7 @@ $('add-win').addEventListener('click', () => addWin().focus());
 
 // 修改：把今天的資料填回去
 function fill(e) {
-  for (const k of ['breakfast', 'lunch', 'dinner', 'note', 'word']) $(k).value = e[k] || '';
+  for (const k of ['breakfast', 'lunch', 'dinner', 'note']) $(k).value = e[k] || '';
   form.querySelectorAll('.win-input:not(#small_win)').forEach(i => i.remove());
   const [first, ...rest] = (e.small_win || '').split('\n');
   $('small_win').value = first || '';

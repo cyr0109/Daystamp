@@ -132,7 +132,6 @@ input[type=range] { width: 100%; accent-color: var(--ink); }
 .chip:has(input:checked) { border-color: var(--ink); background: var(--ink); color: var(--paper); }
 .chip:has(input:focus-visible) { outline: 2px solid var(--seal); outline-offset: 2px; }
 
-.word-input { font-family: var(--kai); font-size: 4rem !important; width: 9.5rem !important; text-align: center; }
 
 .song-results { list-style: none; padding: 0; margin: 0; display: grid; gap: .25rem; }
 .song-results button {

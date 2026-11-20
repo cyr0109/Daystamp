@@ -15,7 +15,7 @@
     {% for h in rows %}{% set e = h.e %}
       <li style="--mood: {{ e.mood }}">
         <a href="/day/{{ e.day }}">
-          <span class="mini-seal{% if (e.word or '')|length == 2 %} two{% endif %}">{{ e.word or '・' }}</span>
+          <span class="mini-seal two">{{ e.emotion }}</span>
           <span><span class="meta">{{ e.day }}　心情 {{ e.mood }}，{{ e.emotion }}</span><br>
             {%- if h.win %}{{ h.win[0] }}<mark>{{ h.win[1] }}</mark>{{ h.win[2] }}{% else %}{{ e.small_win|win_short }}{% endif %}
             {%- if h.other %}<br><span class="search-hit">{{ h.other[0] }}：{{ h.other[1][0] }}<mark>{{ h.other[1][1] }}</mark>{{ h.other[1][2] }}</span>{% endif %}
