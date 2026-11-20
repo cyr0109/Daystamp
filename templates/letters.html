@@ -35,7 +35,8 @@
   {% for l in arrived %}
     <li><a href="/letters/{{ l.id }}">
       <span class="mini-seal">{{ '答' if l.answer else '信' }}</span>
-      <span><span class="meta">{{ l.asked_day }} 寄出{% if not l.answer %}，還沒回答{% endif %}</span><br>{{ l.question }}</span>
+      <span><span class="meta">{{ l.asked_day }} 寄出{% if not l.answer %}，還沒回答{% endif %}</span><br>{{ l.question }}
+        {%- if l.answer %}<br><span class="letter-answer">你的回答：{{ l.answer|truncate(40, True, '…') }}</span>{% endif %}</span>
     </a></li>
   {% endfor %}
   </ul>

@@ -1,13 +1,23 @@
 {% extends "base.html" %}
 {% block title %}{{ entry.day }}　日日{% endblock %}
 {% block content %}
-<article class="day">
+<nav class="day-nav" aria-label="翻頁">
+  <a class="back-link" href="/calendar?month={{ entry.day[:7] }}">{{ entry.day[5:7]|int }} 月的日曆</a>
+  <span>
+    {% if prev %}<a class="back-link" href="/day/{{ prev }}" aria-label="上一篇：{{ prev }}">‹ {{ prev[5:7]|int }}/{{ prev[8:]|int }}</a>{% endif %}
+    {% if next %}<a class="back-link" href="/day/{{ next }}" aria-label="下一篇：{{ next }}">{{ next[5:7]|int }}/{{ next[8:]|int }} ›</a>{% endif %}
+  </span>
+</nav>
+<article class="day{% if entry.song_title %} has-song{% endif %}">
+  <div>
   <header class="day-head">
     <div class="seal" aria-label="今日一字">
       <span class="seal-w{% if (entry.word or '')|length == 2 %} two{% endif %}">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
     </div>
     <div>
-      <h1>{{ entry.day }}　{{ entry.day|weekday }}</h1>
+      <h1>{{ entry.day }}　{{ entry.day|weekday }}
+        {% if is_today %}<a class="icon-button" href="/" aria-label="修改今天的紀錄" title="修改"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></a>{% endif %}
+      </h1>
       <p class="meta">心情 {{ entry.mood }}，{{ entry.emotion }}{% if entry.weather %}　{{ entry.weather }}{% endif %}</p>
     </div>
   </header>
@@ -17,26 +27,26 @@
   {% if entry.breakfast or entry.lunch or entry.dinner %}
   <dl class="meals-list">
     {% for k, label in [('breakfast', '早餐'), ('lunch', '午餐'), ('dinner', '晚餐')] if entry[k] %}
-      <div><dt>{{ label }}</dt><dd>{{ entry[k] }}</dd></div>
+      <div><dt>{{ label }}</dt><dd>{{ entry[k] }}
+        <a class="map-link" href="https://www.google.com/maps/search/?api=1&query={{ entry[k]|urlencode }}" target="_blank" rel="noopener noreferrer"
+           aria-label="在 Google 地圖找「{{ entry[k] }}」" title="在 Google 地圖找"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></a></dd></div>
     {% endfor %}
   </dl>
   {% endif %}
 
+  {% if entry.note %}<div class="note">{{ entry.note }}</div>{% endif %}
+  </div>
+
   {% if entry.song_title %}
-  <div class="song-picked">
+  <aside class="day-song" aria-label="今天的歌">
     {% if entry.song_artwork %}<img src="{{ entry.song_artwork }}" alt="{{ entry.song_title }} 封面">{% endif %}
     <div>
-      <p>{{ entry.song_title }}{% if entry.song_artist %}　{{ entry.song_artist }}{% endif %}</p>
+      <p class="day-song-title">{{ entry.song_title }}</p>
+      {% if entry.song_artist %}<p class="meta">{{ entry.song_artist }}</p>{% endif %}
       {% if entry.song_preview %}<audio controls preload="none" src="{{ entry.song_preview }}"></audio>{% endif %}
     </div>
-  </div>
+  </aside>
   {% endif %}
 
-  {% if entry.note %}<div class="note">{{ entry.note }}</div>{% endif %}
-
-  <p class="meta">
-    <a href="/calendar?month={{ entry.day[:7] }}">回到 {{ entry.day[5:7]|int }} 月的日曆</a>
-    {% if is_today %}　<a href="/">修改今天的紀錄</a>{% endif %}
-  </p>
 </article>
 {% endblock %}

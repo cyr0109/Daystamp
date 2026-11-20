@@ -96,28 +96,26 @@ def weekly_review(entries, letters_answered):
     for e in entries:
         days.append(f"{_md(e['day'])}｜心情 {e['mood']}｜{e['emotion']}｜做到的事：{e['small_win']}"
                     + (f"｜日記：{e['note'][:200]}" if e.get("note") else ""))
-    # 小模型不會自己判斷條件，也會為了湊句數編內容：所以句數、低分的日子都由程式先算好
-    sentences = min(len(entries) + 1, 5)
+    # 小模型給它空間就會補廢話、編因果：所以每一句要寫什麼、用哪些材料，都由程式排好
+    emotions = list(dict.fromkeys(e["emotion"] for e in entries))
     low = [e for e in entries if e["mood"] <= 4]
-    rules = [
-        f"用繁體中文、第二人稱「你」，最多 {sentences} 句話。說完就停，不要寫「整體而言」這種總結句。",
-        "說出這週做到的小事，用紀錄裡的原話。",
-        "用一句話描述這週的心情，不評價好壞。",
-    ]
-    if low:
-        rules.append("、".join(_md(e["day"]) for e in low) + " 心情比較低，溫和地提那天還是做到了什麼。")
-    if letters_answered:
-        rules.append(f"這週回答了 {letters_answered} 封過去的自己寄來的信，提一句。")
-    rules += [
-        "只能寫紀錄裡有的事。紀錄沒寫到的感受、事件、天數都不要寫。",
-        "不要寫建議、期許或祝福（例如「希望」、「加油」、「繼續」開頭的句子）。",
-        "不要條列，不要 Markdown。",
-    ]
+    wins = [e for e in entries if e not in low]   # 低分那天的事留到後面講，不重複
+    plan = []
+    if wins:
+        plan.append("說出這週的這些事：" + "、".join(f"「{e['small_win']}」" for e in wins)
+                    + "。為了句子通順可以改幾個字，但不要加原因、結果或感受。")
+    plan.append("說出這週的心情：" + "、".join(emotions) + "。只用這幾個詞，不加形容。")
+    plan += [f"說 {_md(e['day'])} 心情比較低，那天你還是「{e['small_win']}」。" for e in low]
     prompt = ("下面是一個人這週的日記紀錄：\n\n" + "\n".join(days)
-              + "\n\n請照這些規則寫一段每週回顧：\n" + "\n".join(f"- {r}" for r in rules))
+              + f"\n\n請用台灣繁體中文、第二人稱「你」，剛好寫 {len(plan)} 句話，一句做一件事：\n"
+              + "\n".join(f"第 {i} 句：{p}" for i, p in enumerate(plan, 1))
+              + "\n\n寫完就停。不要多加任何一句，不要總結，不要提分數，"
+                "不要寫建議或祝福，不要換行、條列或 Markdown。")
     try:
-        text = _chat(prompt, max_tokens=600).strip()
+        text = _chat(prompt, max_tokens=600).replace("\n", "").strip()
     except Exception as e:
         print(f"[ai] weekly_review 失敗：{e}")
         return None
+    if text and letters_answered:   # 固定內容，程式自己寫比模型穩
+        text += f"這週你回了 {letters_answered} 封過去的自己寄來的信。"
     return text[:REVIEW_MAX_CHARS] or None

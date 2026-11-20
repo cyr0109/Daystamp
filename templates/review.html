@@ -4,7 +4,7 @@
 <header class="month-head">
   <a href="/review?week={{ prev }}" class="link-button" aria-label="上一週">‹</a>
   <h1>{{ start.month }}/{{ start.day }} 到 {{ end.month }}/{{ end.day }}</h1>
-  <a href="/review?week={{ next }}" class="link-button" aria-label="下一週" {% if is_current %}hidden{% endif %}>›</a>
+  <a href="/review?week={{ next }}" class="link-button" aria-label="下一週" {% if is_current %}style="visibility: hidden" tabindex="-1" aria-hidden="true"{% endif %}>›</a>
 </header>
 
 {% if not entries %}
@@ -14,7 +14,7 @@
     {% if review %}
       {# AI 的輸出只當純文字：Jinja 自動轉義，不用 |safe #}
       <p class="review-text">{{ review.content }}</p>
-      <p class="meta">AI 在 {{ review.created_at[:16]|replace('T', ' ') }} 寫的。
+      <p class="meta">AI 在 {{ review.created_at[5:7]|int }}/{{ review.created_at[8:10]|int }} {{ review.created_at[11:16] }} 寫的。
         <button type="button" class="link-button" id="gen">重新產生</button></p>
     {% else %}
       <p class="hint">讓 AI 讀這週的紀錄，寫一段回顧給你。大概要等十幾秒。</p>

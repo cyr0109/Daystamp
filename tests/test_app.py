@@ -72,6 +72,36 @@ class AppTest(unittest.TestCase):
         self.assertEqual(self.c.get("/calendar").status_code, 200)
         self.assertEqual(self.c.get(f"/day/{self.today}").status_code, 200)
 
+    def test_week_seals_show_saved_days(self):
+        self.entry()
+        html = self.c.get("/").get_data(as_text=True)
+        self.assertIn(f'<a href="/day/{self.today}" class="mini-seal" aria-label="{self.today}">暖</a>', html)
+        self.assertEqual(html.count('mini-seal is-empty'), 6)   # 只寫了今天，其他 6 天是空圓
+
+    def test_split_hit(self):
+        self.assertEqual(diary.split_hit("今天吃拉麵", "拉麵"), ("今天吃", "拉麵", ""))
+        self.assertEqual(diary.split_hit("ABC", "b"), ("A", "B", "C"))
+        self.assertEqual(diary.split_hit("一" * 30 + "貓" + "二" * 30, "貓", room=3), ("…一一一", "貓", "二二二…"))
+        self.assertIsNone(diary.split_hit(None, "貓"))
+
+    def test_search_highlights_and_escapes(self):
+        self.entry(note="晚餐<b>拉麵</b>")
+        html = self.c.get("/search?q=拉麵").get_data(as_text=True)
+        self.assertIn("日記：晚餐&lt;b&gt;<mark>拉麵</mark>&lt;/b&gt;", html)
+
+    def test_day_page_links_neighbours(self):
+        with diary.app.app_context():
+            db = diary.get_db()
+            for d in ("2026-01-01", "2026-01-05", "2026-01-09"):
+                db.execute("INSERT INTO entries (day, small_win, mood, emotion, updated_at) VALUES (?, 'x', 7, '開心', '')", (d,))
+            db.commit()
+        html = self.c.get("/day/2026-01-05").get_data(as_text=True)
+        self.assertIn('href="/day/2026-01-01"', html)
+        self.entry(lunch="一蘭 & 拉麵")
+        html = self.c.get(f"/day/{self.today}").get_data(as_text=True)
+        self.assertIn("maps/search/?api=1&query=%E4%B8%80%E8%98%AD%20%26%20%E6%8B%89%E9%BA%B5", html)
+        self.assertIn('href="/day/2026-01-09"', html)
+
     def test_rejects_bad_input(self):
         self.assertEqual(self.entry(day="2020-01-01").status_code, 400)
         self.assertEqual(self.entry(mood=11).status_code, 400)

@@ -167,7 +167,13 @@ def today_page():
     memory = db.execute("SELECT * FROM entries WHERE day < ? ORDER BY mood >= 7 DESC, RANDOM() LIMIT 1",
                         (str(today - timedelta(days=7)),)).fetchone()
     memory_days_ago = (today - date.fromisoformat(memory["day"])).days if memory else None
-    return render_template("today.html", day=str(today), entry=get_entry(today), due=due,
+    # 這週一～日的印章列
+    start = week_start(today)
+    words = {r["day"]: r["word"] for r in db.execute("SELECT day, word FROM entries WHERE day BETWEEN ? AND ?",
+                                                     (str(start), str(start + timedelta(days=6))))}
+    week = [{"day": str(d), "has": str(d) in words, "word": words.get(str(d)), "future": d > today}
+            for d in (start + timedelta(days=i) for i in range(7))]
+    return render_template("today.html", day=str(today), entry=get_entry(today), due=due, week=week,
                            memory=memory, memory_days_ago=memory_days_ago, plant=plant_state(today),
                            saved=request.args.get("saved") == "1")
 
@@ -200,7 +206,11 @@ def day_page(day):
     entry = get_entry(d) if d else None
     if not entry:
         abort(404)
-    return render_template("day.html", entry=entry, is_today=d == logical_today())
+    db = get_db()
+    prev = db.execute("SELECT day FROM entries WHERE day < ? ORDER BY day DESC LIMIT 1", (str(d),)).fetchone()
+    nxt = db.execute("SELECT day FROM entries WHERE day > ? ORDER BY day LIMIT 1", (str(d),)).fetchone()
+    return render_template("day.html", entry=entry, is_today=d == logical_today(),
+                           prev=prev and prev["day"], next=nxt and nxt["day"])
 
 
 @app.route("/review")
@@ -217,6 +227,21 @@ def review_page():
                            is_current=start == week_start(today))
 
 
+def split_hit(text, q, room=18):
+    """找到 q 就切成 (前, 命中, 後)，前後各留 room 個字；找不到回傳 None。
+    分三段交給模板，模板只包 <mark>，日記內容照樣自動轉義。"""
+    i = (text or "").lower().find(q.lower())
+    if i < 0:
+        return None
+    before, after = text[max(0, i - room):i], text[i + len(q):i + len(q) + room]
+    return (("…" if i > room else "") + before, text[i:i + len(q)],
+            after + ("…" if i + len(q) + room < len(text) else ""))
+
+
+HIT_FIELDS = [("note", "日記"), ("breakfast", "早餐"), ("lunch", "午餐"), ("dinner", "晚餐"),
+              ("song_title", "歌"), ("song_artist", "歌手")]
+
+
 @app.route("/search")
 def search_page():
     q = request.args.get("q", "").strip()[:50]
@@ -228,7 +253,14 @@ def search_page():
                OR lunch LIKE ? OR dinner LIKE ? OR song_title LIKE ? OR song_artist LIKE ?
                OR word = ? OR emotion = ? ORDER BY day DESC LIMIT 100""",
             (like, like, like, like, like, like, like, q, q)).fetchall()
-    return render_template("search.html", q=q, rows=rows)
+    hits = []
+    for r in rows:
+        win = split_hit(r["small_win"], q)
+        # 「做到的小事」沒命中，就找出是哪一欄命中的，顯示那一小段
+        other = None if win else next(((label, h) for k, label in HIT_FIELDS
+                                       if (h := split_hit(r[k], q))), None)
+        hits.append({"e": r, "win": win, "other": other})
+    return render_template("search.html", q=q, rows=hits)
 
 
 @app.route("/letters")

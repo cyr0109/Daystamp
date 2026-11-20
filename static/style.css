@@ -66,17 +66,16 @@ a:hover { text-decoration-color: currentColor; }
 .tabs .brand { font-family: var(--kai); font-size: 1.5rem; color: var(--ink); margin-right: auto; border: 0; }
 
 .page { max-width: 52rem; margin: 0 auto; padding: 2rem 1rem 5rem; }
-.with-margin { display: grid; grid-template-columns: minmax(0, 1fr) 11rem; gap: 3rem; }
-.margin { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; padding-top: 2rem; }
-@media (max-width: 40rem) {
-  .with-margin { grid-template-columns: 1fr; gap: 2rem; }
-  .margin { border-top: 1px dashed var(--line); padding-top: 1.5rem; }
-}
+/* 盆栽放在最下面，填掉紀錄下方的空白 */
+.with-margin { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+.margin { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .25rem; border-top: 1px dashed var(--line); padding-top: 1.5rem; }
 
 .meta { color: var(--ink-soft); font-size: .875rem; margin: .25rem 0; }
 .hint { color: var(--ink-soft); margin: 0 0 1rem; }
 .center { text-align: center; }
 .error { color: var(--seal); min-height: 1.5em; margin: .5rem 0; }
+/* 這兩處沒錯誤時不佔位，不然按鈕上下會多一塊空白 */
+.review-box .error:empty, .letter-form .error:empty { display: none; }
 .empty { color: var(--ink-soft); padding: 2rem 0; }
 .dateline { font-family: var(--kai); font-size: 1.125rem; color: var(--ink-soft); margin: 0 0 1.5rem; }
 
@@ -91,6 +90,15 @@ a:hover { text-decoration-color: currentColor; }
   font: inherit; cursor: pointer; background: none; border: 0; padding: .25rem;
   color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line);
 }
+.icon-button {
+  display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; vertical-align: middle;
+  background: none; border: 0; border-radius: 50%; color: var(--ink-soft); cursor: pointer;
+}
+.icon-button:hover, .icon-button:focus-visible { color: var(--ink); background: var(--grid); }
+.back-link { display: inline-block; margin-bottom: 1rem; font-size: .875rem; color: var(--ink-soft); text-decoration: none; }
+.back-link:hover { color: var(--ink); }
+.day-nav { display: flex; justify-content: space-between; gap: 1rem; }
+.day-nav span { display: flex; gap: 1.25rem; }
 input:not([type=radio]):not([type=range]), textarea {
   font: inherit; color: var(--ink); width: 100%;
   background: transparent; border: 0; border-bottom: 1px solid var(--ink-soft);
@@ -162,6 +170,14 @@ audio { height: 2rem; max-width: 100%; }
 
 .done { display: flex; gap: 1.75rem; align-items: flex-start; padding: 1rem 0 2rem; }
 .done-win { font-size: 1.25rem; margin: 0 0 .25rem; }
+/* 這週的印章列：沒寫的日子是虛線圓，還沒到的日子更淡 */
+.week-seals { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+.week-seals li { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.week-seals a { text-decoration: none; }
+.mini-seal.is-empty { filter: none; border: 1.5px dashed var(--line); }
+.week-seals .is-future .mini-seal { opacity: .45; }
+.week-seals .is-today .meta { color: var(--ink); }
+.week-seals .is-today .meta::after { content: ""; display: block; width: 4px; height: 4px; margin: .15rem auto 0; border-radius: 50%; background: var(--seal); }
 
 .memory {
   display: flex; flex-direction: column; gap: .25rem; text-decoration: none;
@@ -186,6 +202,11 @@ audio { height: 2rem; max-width: 100%; }
 .plant .plant-rim { fill: var(--pot-rim); }
 .plant .plant-z { fill: var(--ink-soft); font: 14px var(--kai); }
 .plant.is-asleep { opacity: .7; }
+/* 以盆口 (60,120) 當支點輕擺；睡著時擺得更慢 */
+.plant .plant-sway { transform-box: view-box; transform-origin: 60px 120px; animation: sway 4s ease-in-out infinite alternate; }
+.plant.is-asleep .plant-sway { animation-duration: 8s; }
+@keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@media (prefers-reduced-motion: reduce) { .plant .plant-sway { animation: none; } }
 
 /* ---------- 日曆 ---------- */
 .month-head { display: flex; justify-content: center; align-items: center; gap: 1.5rem; }
@@ -195,23 +216,26 @@ audio { height: 2rem; max-width: 100%; }
 .cal { width: 100%; min-width: 20rem; border-collapse: collapse; table-layout: fixed; }
 .cal th { font-weight: 400; color: var(--ink-soft); font-size: .875rem; padding-bottom: .5rem; }
 .cal td { border: 1px solid var(--line); height: 5.5rem; vertical-align: top; padding: 0; position: relative; background: var(--paper); }
-.cal td.has-entry { background: color-mix(in srgb, var(--wash) calc(var(--mood) * 7%), var(--paper)); }
-.cal td.is-out { opacity: .35; }
+/* 心情 = 格子底部的藍線，越開心越濃 */
+.cal td.has-entry { box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--wash) calc(10% + var(--mood) * 9%), var(--paper)); }
+.cal td.is-out .cal-date { opacity: .35; }
 .cal td.is-today { outline: 2px solid var(--ink); outline-offset: -2px; }
 .cal a { display: block; height: 100%; text-decoration: none; }
 .cal-date { position: absolute; top: .2rem; left: .35rem; font-size: .75rem; color: var(--ink-soft); }
-.has-entry .cal-date { color: var(--ink); background: var(--paper); padding: 0 .25rem; border-radius: 2px; }
-.has-entry .cal-seal { background: var(--paper); }
+.has-entry .cal-date { color: var(--ink); }
+/* 每天角度不同（--tilt 由日期算），像一個一個蓋上去的 */
 .cal-seal {
-  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -42%) rotate(-6deg);
-  width: 2.4rem; height: 2.4rem; display: grid; place-items: center;
-  font-size: 1.2rem; line-height: 1; border-width: 1.5px;
+  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -44%) rotate(var(--tilt, -6deg));
+  width: 3rem; height: 3rem; display: grid; place-items: center;
+  font-size: 1.5rem; line-height: 1; border-width: 2px;
 }
-.cal-art { position: absolute; right: .25rem; bottom: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 2px; }
+.cal-seal.two { font-size: .95rem; }
+.cal-song { position: absolute; top: .2rem; right: .4rem; font-size: .75rem; color: var(--ink-soft); }
 @media (max-width: 30rem) {
   .cal td { height: 3.6rem; }
-  .cal-seal { width: 1.7rem; height: 1.7rem; font-size: 1.1rem; }
-  .cal-art { display: none; }
+  .cal-seal { width: 1.9rem; height: 1.9rem; font-size: 1.05rem; border-width: 1.5px; }
+  .cal-seal.two { font-size: .65rem; }
+  .cal-song { display: none; }
 }
 
 .greenhouse { margin-top: 1rem; }
@@ -229,9 +253,26 @@ audio { height: 2rem; max-width: 100%; }
 .review-box { margin: 1.5rem 0; padding: 1.5rem; background: var(--paper); border: 1px solid var(--line); }
 .review-text { font-family: var(--kai); font-size: 1.25rem; line-height: 1.9; white-space: pre-wrap; margin: 0 0 1rem; }
 .search-form { display: flex; gap: 1rem; align-items: flex-end; margin: 1rem 0 2rem; }
+.search-form .ink-button { flex: none; }
+mark { background: color-mix(in srgb, var(--seal) 22%, transparent); color: inherit; border-radius: 2px; padding: 0 .1em; }
+.search-hit { color: var(--ink-soft); font-size: .875rem; }
+.letter-answer { color: var(--ink-soft); font-size: .875rem; }
 
 /* ---------- 單日 ---------- */
 .day { max-width: 36rem; }
+/* 有歌的日子：左邊文字、右邊歌；手機上歌排回下面 */
+.day.has-song { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) 13rem; gap: 3rem; align-items: start; }
+.day-song { display: flex; flex-direction: column; gap: .75rem; padding-top: .5rem; }
+.day-song img { width: 100%; height: auto; aspect-ratio: 1; box-shadow: 3px 4px 0 var(--line); }
+.day-song p { margin: 0; }
+.day-song-title { font-size: 1.1rem; line-height: 1.5; }
+.day-song audio { width: 100%; margin-top: .5rem; }
+@media (max-width: 40rem) {
+  .day.has-song { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .day-song { flex-direction: row; align-items: center; gap: 1rem; }
+  .day-song img { width: 96px; }
+  .day-song > div { flex: 1; min-width: 0; }
+}
 .day-head { display: flex; gap: 1.5rem; align-items: center; margin-bottom: 2rem; }
 .day-head h1 { font-size: 1.5rem; }
 .day-win { font-family: var(--kai); font-size: 1.6rem; line-height: 1.6; }
@@ -239,13 +280,15 @@ audio { height: 2rem; max-width: 100%; }
 .meals-list div { display: grid; grid-template-columns: 3rem 1fr; }
 .meals-list dt { color: var(--ink-soft); }
 .meals-list dd { margin: 0; }
+.map-link { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; vertical-align: middle; border-radius: 50%; color: var(--ink-soft); }
+.map-link:hover, .map-link:focus-visible { color: var(--seal); background: var(--grid); }
 .note { white-space: pre-wrap; margin: 1.5rem 0; padding: 1rem 1.25rem; background: var(--paper); border-left: 3px solid var(--line); }
 
 /* ---------- 信 ---------- */
 .letter-form { display: grid; gap: 1rem; margin: 1.5rem 0 1rem; max-width: 36rem; }
 .letter-form .ink-button { justify-self: start; }
 .letter-form input[type=date] { width: auto; }
-.then-now { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1.5rem; }
+.then-now { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1.5rem; align-items: start; }
 .then-now section { padding: 1.5rem; background: var(--paper); border: 1px solid var(--line); }
 .then { border-style: dashed !important; }
 .letter-q, .letter-a { font-family: var(--kai); font-size: 1.4rem; line-height: 1.6; white-space: pre-wrap; margin: 0 0 .5rem; }
