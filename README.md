@@ -47,6 +47,8 @@ ollama pull qwen3.5:4b                 # 想換模型：DIARY_MODEL=其他模型
 ```
 
 - 每晚提醒：`scripts/install_reminder.sh`（預設 22 點，可以傳別的小時，例如 `scripts/install_reminder.sh 21`）
+  - 馬上試跳一次：`scripts/remind.sh`
+  - 關掉：`launchctl bootout gui/$(id -u)/com.diarybot.remind`，再 `rm ~/Library/LaunchAgents/com.diarybot.remind.plist`
 - 手機（同一個 Wi-Fi）：`DIARY_HOST=0.0.0.0 .venv/bin/python app.py`。⚠️ 沒有登入功能，同一個網路的人都看得到，只在家裡用。
 - 天氣的城市：`DIARY_LAT`、`DIARY_LON`（預設台北）
 - 測試：`.venv/bin/python -m unittest discover tests`
