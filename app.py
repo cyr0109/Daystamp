@@ -93,7 +93,8 @@ def write_markdown(e):
     lines.append(f"- 心情：{e['mood']}/10　{e['emotion']}")
     if e.get("weather"):
         lines.append(f"- 天氣：{e['weather']}")
-    lines.append(f"- 今天做到的小事：{e['small_win']}")
+    lines.append("- 今天做到的小事：")
+    lines += [f"  - {w}" for w in wins_filter(e["small_win"])]
     for k, label in [("breakfast", "早餐"), ("lunch", "午餐"), ("dinner", "晚餐")]:
         if e.get(k):
             lines.append(f"- {label}：{e[k]}")
@@ -142,6 +143,19 @@ def require_json_for_writes():
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify(error=e.description), 400
+
+
+@app.template_filter("wins")
+def wins_filter(small_win):
+    """小事一行一件，存在同一格。"""
+    return [w for w in (small_win or "").split("\n") if w]
+
+
+@app.template_filter("win_short")
+def win_short_filter(small_win):
+    """擠的地方只放第一件。"""
+    ws = wins_filter(small_win)
+    return ws[0] + (f"　等 {len(ws)} 件" if len(ws) > 1 else "") if ws else ""
 
 
 @app.template_filter("weekday")
@@ -255,7 +269,7 @@ def search_page():
             (like, like, like, like, like, like, like, q, q)).fetchall()
     hits = []
     for r in rows:
-        win = split_hit(r["small_win"], q)
+        win = split_hit(r["small_win"].replace("\n", "、"), q)
         # 「做到的小事」沒命中，就找出是哪一欄命中的，顯示那一小段
         other = None if win else next(((label, h) for k, label in HIT_FIELDS
                                        if (h := split_hit(r[k], q))), None)
@@ -304,9 +318,12 @@ def save_entry():
     if word and not ai.is_word(word):
         abort(400, "今日一字要是 1～2 個中文字")
 
+    # 小事可以好幾件，一行一件；去掉每行前後空白和空行
+    small_win = "\n".join(s for s in (l.strip() for l in text(data, "small_win", 1000, required=True).split("\n")) if s)
+
     old = get_entry(day)
     e = {
-        "day": str(day), "small_win": text(data, "small_win", 200, required=True), "mood": mood,
+        "day": str(day), "small_win": small_win, "mood": mood,
         "emotion": emotion, "word": word,
         "breakfast": text(data, "breakfast", 100), "lunch": text(data, "lunch", 100),
         "dinner": text(data, "dinner", 100),

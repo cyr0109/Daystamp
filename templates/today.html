@@ -18,9 +18,11 @@
         <span class="seal-w{% if (entry.word or '')|length == 2 %} two{% endif %}">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
       </div>
       <div>
-        <p class="done-win">{{ entry.small_win }}
-          <button type="button" class="icon-button" id="edit" aria-label="修改今天的紀錄" title="修改"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
-        </p>
+        {% set ws = entry.small_win|wins %}
+        <ul class="done-win win-list{% if ws|length == 1 %} is-single{% endif %}">
+        {% for w in ws %}<li>{{ w }}{% if loop.first %}
+          <button type="button" class="icon-button" id="edit" aria-label="修改今天的紀錄" title="修改"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>{% endif %}</li>{% endfor %}
+        </ul>
         <p class="meta">心情 {{ entry.mood }}，{{ entry.emotion }}{% if entry.weather %}　{{ entry.weather }}{% endif %}</p>
         {% if entry.song_title %}<p class="meta">♪ {{ entry.song_title }}{% if entry.song_artist %}　{{ entry.song_artist }}{% endif %}</p>{% endif %}      </div>
     </section>
@@ -41,7 +43,10 @@
       <section class="step" data-key="small_win">
         <label class="q" for="small_win">今天做到了什麼小事？</label>
         <p class="hint">一句話就好。回了一封信、把衣服摺好，都算。</p>
-        <textarea id="small_win" rows="2" maxlength="200" data-enter="next"></textarea>
+        <div class="win-inputs" id="wins">
+          <input id="small_win" class="win-input" maxlength="200" autocomplete="off">
+        </div>
+        <button type="button" class="link-button add-win" id="add-win">＋ 再加一件</button>
       </section>
 
       <section class="step" data-key="mood" hidden>
@@ -102,7 +107,7 @@
     {% if memory %}
     <a class="memory" href="/day/{{ memory.day }}">
       <span class="meta">{{ memory_days_ago }} 天前的你</span>
-      <span class="memory-win">{{ memory.small_win }}</span>
+      <span class="memory-win">{{ memory.small_win|win_short }}</span>
     </a>
     {% endif %}
   </div>
@@ -146,7 +151,8 @@ const isOptional = () => ['meals', 'song', 'note'].includes(steps[at].dataset.ke
 function collect() {
   const v = id => $(id).value.trim();
   return {
-    day: DAY, small_win: v('small_win'), mood: Number($('mood').value),
+    day: DAY, mood: Number($('mood').value),
+    small_win: [...form.querySelectorAll('.win-input')].map(i => i.value.trim()).filter(Boolean).join('\n'),
     breakfast: v('breakfast'), lunch: v('lunch'), dinner: v('dinner'),
     song_title: song?.title || v('song-q'), song_artist: song?.artist || '',
     song_artwork: song?.artwork || '', song_preview: song?.preview || '',
@@ -156,7 +162,7 @@ function collect() {
 
 function check() {
   const key = steps[at].dataset.key;
-  if (key === 'small_win' && !$('small_win').value.trim()) return '寫一件就好，很小也可以。';
+  if (key === 'small_win' && !collect().small_win) return '寫一件就好，很小也可以。';
   if (key === 'emotion' && !form.emotion.value) return '選一個最接近的。';
   return '';
 }
@@ -264,9 +270,23 @@ function pickSong(s) {
   box.hidden = false;
 }
 
+// 小事：自己按「再加一件」多一格；空的格子存檔時會被忽略
+function addWin(value = '') {
+  const i = document.createElement('input');
+  i.className = 'win-input'; i.maxLength = 200; i.value = value; i.autocomplete = 'off';
+  i.setAttribute('aria-label', '再一件做到的小事');
+  $('wins').append(i);
+  return i;
+}
+$('add-win').addEventListener('click', () => addWin().focus());
+
 // 修改：把今天的資料填回去
 function fill(e) {
-  for (const k of ['small_win', 'breakfast', 'lunch', 'dinner', 'note', 'word']) $(k).value = e[k] || '';
+  for (const k of ['breakfast', 'lunch', 'dinner', 'note', 'word']) $(k).value = e[k] || '';
+  form.querySelectorAll('.win-input:not(#small_win)').forEach(i => i.remove());
+  const [first, ...rest] = (e.small_win || '').split('\n');
+  $('small_win').value = first || '';
+  rest.forEach(w => addWin(w));
   $('mood').value = e.mood; $('mood-out').textContent = e.mood;
   form.querySelector(`input[value="${e.emotion}"]`).checked = true;
   if (e.song_title) {

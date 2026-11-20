@@ -78,6 +78,16 @@ class AppTest(unittest.TestCase):
         self.assertIn(f'<a href="/day/{self.today}" class="mini-seal" aria-label="{self.today}">暖</a>', html)
         self.assertEqual(html.count('mini-seal is-empty'), 6)   # 只寫了今天，其他 6 天是空圓
 
+    def test_several_small_wins(self):
+        self.assertEqual(self.entry(small_win="  摺衣服 \n\n 回信\n").status_code, 200)
+        with diary.app.app_context():
+            self.assertEqual(diary.get_entry(self.today)["small_win"], "摺衣服\n回信")
+        html = self.c.get(f"/day/{self.today}").get_data(as_text=True)
+        self.assertIn("<li>摺衣服</li><li>回信</li>", html)
+        self.assertEqual(diary.win_short_filter("摺衣服\n回信\n倒垃圾"), "摺衣服　等 3 件")
+        self.assertEqual(diary.win_short_filter("摺衣服"), "摺衣服")
+        self.assertEqual(self.entry(small_win="\n \n").status_code, 400)
+
     def test_split_hit(self):
         self.assertEqual(diary.split_hit("今天吃拉麵", "拉麵"), ("今天吃", "拉麵", ""))
         self.assertEqual(diary.split_hit("ABC", "b"), ("A", "B", "C"))

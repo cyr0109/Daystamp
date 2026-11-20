@@ -22,7 +22,10 @@
     </div>
   </header>
 
-  <p class="day-win">{{ entry.small_win }}</p>
+  {% set ws = entry.small_win|wins %}
+  <ul class="day-win win-list{% if ws|length == 1 %} is-single{% endif %}">
+    {% for w in ws %}<li>{{ w }}</li>{% endfor %}
+  </ul>
 
   {% if entry.breakfast or entry.lunch or entry.dinner %}
   <dl class="meals-list">

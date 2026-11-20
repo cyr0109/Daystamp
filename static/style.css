@@ -111,7 +111,7 @@ input:focus, textarea:focus { outline: none; border-bottom: 2px solid var(--ink)
 .flow { min-height: 22rem; display: flex; flex-direction: column; }
 .progress { color: var(--ink-soft); font-size: .875rem; margin: 0 0 1rem; font-variant-numeric: tabular-nums; }
 .q { display: block; font-family: var(--kai); font-size: clamp(1.6rem, 4.5vw, 2.25rem); line-height: 1.35; margin: 0 0 .5rem; }
-#small_win, #note, #question, #answer { font-size: 1.125rem; }
+.win-input, #note, #question, #answer { font-size: 1.125rem; }
 .flow-nav { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 2rem; }
 .mood-big { display: block; font-family: var(--kai); font-size: 4.5rem; line-height: 1; margin: .5rem 0 1rem; font-variant-numeric: tabular-nums; }
 input[type=range] { width: 100%; accent-color: var(--ink); }
@@ -170,6 +170,15 @@ audio { height: 2rem; max-width: 100%; }
 
 .done { display: flex; gap: 1.75rem; align-items: flex-start; padding: 1rem 0 2rem; }
 .done-win { font-size: 1.25rem; margin: 0 0 .25rem; }
+/* 小事清單：多件時每件前面一個朱色小點；只有一件時跟以前一樣 */
+.win-list { list-style: none; padding: 0; }
+.win-list li { position: relative; padding-left: 1.1em; }
+.win-list li::before { content: ""; position: absolute; left: .2em; top: calc(.5lh - .175em); width: .35em; height: .35em; border-radius: 50%; background: var(--seal); }
+.win-list.is-single li { padding-left: 0; }
+.win-list.is-single li::before { display: none; }
+/* 填寫時的「再加一件」 */
+.win-inputs { display: grid; gap: .5rem; }
+.add-win { justify-self: start; margin-top: .25rem; }
 /* 這週的印章列：沒寫的日子是虛線圓，還沒到的日子更淡 */
 .week-seals { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-wrap: wrap; gap: .75rem; }
 .week-seals li { display: flex; flex-direction: column; align-items: center; gap: .3rem; }

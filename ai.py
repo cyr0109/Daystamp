@@ -35,7 +35,9 @@ def _chat(prompt, fmt=None, max_tokens=80):
         format=fmt,
         think=False,                       # 思考模式會跑超過 90 秒，關掉
         keep_alive="1m",                   # 用完 1 分鐘就釋放記憶體（預設 5 分鐘）
-        options={"temperature": 0.4, "num_predict": max_tokens},  # 限制長度，GPU 少忙一點
+        # 官方非思考模式建議值。presence_penalty 要明確設 0：模型預設 1.5，會連標點都不敢重複用
+        options={"temperature": 0.7, "top_p": 0.8, "top_k": 20, "presence_penalty": 0,
+                 "num_predict": max_tokens},  # 限制長度，GPU 少忙一點
     )
     return resp.message.content or ""
 
@@ -63,7 +65,7 @@ def clean_suggestion(raw):
 
 def suggest(entry):
     """讀今天的紀錄，建議一個情緒標籤和一個字。"""
-    lines = [f"今天做到的小事：{entry.get('small_win', '')}",
+    lines = [f"今天做到的小事：{_wins(entry.get('small_win'))}",
              f"心情分數（1-10）：{entry.get('mood', '')}"]
     for key, label in [("breakfast", "早餐"), ("lunch", "午餐"), ("dinner", "晚餐"),
                        ("song_title", "今天的歌"), ("note", "日記")]:
@@ -83,6 +85,19 @@ def suggest(entry):
         return {"emotion": None, "word": None}
 
 
+def _wins(small_win):
+    """小事一行一件 → 「a」、「b」"""
+    return "、".join(f"「{w}」" for w in (small_win or "").split("\n") if w)
+
+
+def _first_sentences(text, n):
+    """只留前 n 句：小模型講完重點愛補一句「就這樣」「你做得很好」，叫它不要沒用，直接剪。
+    順便去掉換行和句子之間多打的空白。"""
+    text = re.sub(r"\s*\n\s*", "", text or "")
+    text = re.sub(r"(?<=[。！？，、；])\s+", "", text).strip()
+    return "".join(re.findall(r"[^。！？]+[。！？]?", text)[:n])
+
+
 def _md(day):
     """2026-11-17 → 11/17（模型會把 11-17 唸成「十一十七日」）"""
     return f"{int(day[5:7])}/{int(day[8:10])}"
@@ -94,28 +109,32 @@ def weekly_review(entries, letters_answered):
         return None
     days = []
     for e in entries:
-        days.append(f"{_md(e['day'])}｜心情 {e['mood']}｜{e['emotion']}｜做到的事：{e['small_win']}"
+        # 每天只列事情：分數給了會寫「開心的 7 分」；情緒跟事情放同一行，會被連成「因為 A 所以感恩」
+        days.append(f"{_md(e['day'])}｜做到的事：{_wins(e['small_win'])}"
                     + (f"｜日記：{e['note'][:200]}" if e.get("note") else ""))
-    # 小模型給它空間就會補廢話、編因果：所以每一句要寫什麼、用哪些材料，都由程式排好
+    # 材料由程式挑好（小模型自己判斷會編內容），怎麼講交給模型，才不會像填表
     emotions = list(dict.fromkeys(e["emotion"] for e in entries))
     low = [e for e in entries if e["mood"] <= 4]
-    wins = [e for e in entries if e not in low]   # 低分那天的事留到後面講，不重複
-    plan = []
+    wins = [e for e in entries if e not in low]   # 低分那天的事另外講，不重複
+    points = []
     if wins:
-        plan.append("說出這週的這些事：" + "、".join(f"「{e['small_win']}」" for e in wins)
-                    + "。為了句子通順可以改幾個字，但不要加原因、結果或感受。")
-    plan.append("說出這週的心情：" + "、".join(emotions) + "。只用這幾個詞，不加形容。")
-    plan += [f"說 {_md(e['day'])} 心情比較低，那天你還是「{e['small_win']}」。" for e in low]
-    prompt = ("下面是一個人這週的日記紀錄：\n\n" + "\n".join(days)
-              + f"\n\n請用台灣繁體中文、第二人稱「你」，剛好寫 {len(plan)} 句話，一句做一件事：\n"
-              + "\n".join(f"第 {i} 句：{p}" for i, p in enumerate(plan, 1))
-              + "\n\n寫完就停。不要多加任何一句，不要總結，不要提分數，"
-                "不要寫建議或祝福，不要換行、條列或 Markdown。")
+        points.append("這週做到的事：" + "、".join(_wins(e["small_win"]) for e in wins))
+    points.append(f"這週的心情變化：{'→'.join(emotions)}" if len(emotions) > 1
+                  else f"這週的心情：{emotions[0]}")
+    points += [f"{_md(e['day'])} 心情比較低，但那天還是{_wins(e['small_win'])}" for e in low]
+    prompt = ("下面是一個人這週的日記：\n\n" + "\n".join(days)
+              + "\n\n請你像一個溫柔的朋友，在他的手帳旁邊留一小段話，回顧他的這一週。要提到這些：\n"
+              + "\n".join(f"- {p}" for p in points)
+              + f"\n\n用台灣繁體中文，稱呼他「你」，口語、自然，{len(points)} 句以內，每句短一點。"
+                "只能寫上面和日記裡有的事，不要自己加原因、感受或沒發生的事。"
+                "事情和心情分開講，不要把它們說成誰造成誰。"
+                "講完事情就停，最後不要加總結、評語或誇獎，也不要給建議或祝福。寫成一段，不要條列。")
     try:
-        text = _chat(prompt, max_tokens=600).replace("\n", "").strip()
+        text = _chat(prompt, max_tokens=600)
     except Exception as e:
         print(f"[ai] weekly_review 失敗：{e}")
         return None
+    text = _first_sentences(text, len(points))
     if text and letters_answered:   # 固定內容，程式自己寫比模型穩
         text += f"這週你回了 {letters_answered} 封過去的自己寄來的信。"
     return text[:REVIEW_MAX_CHARS] or None

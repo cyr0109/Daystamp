@@ -9,7 +9,7 @@
     {% if then %}
       <a class="memory" href="/day/{{ then.day }}">
         <span class="meta">那天心情 {{ then.mood }}，{{ then.emotion }}{% if then.word %}，一字「{{ then.word }}」{% endif %}</span>
-        <span class="memory-win">{{ then.small_win }}</span>
+        <span class="memory-win">{{ then.small_win|win_short }}</span>
       </a>
     {% endif %}
   </section>
