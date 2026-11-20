@@ -196,10 +196,21 @@ async function askAI() {
   $('ai-emotion').textContent = $('ai-word').textContent = 'AI 正在讀今天的紀錄……';
   let s = {};
   try { s = await postJSON('/api/suggest', data); } catch (e) {}
-  $('ai-emotion').textContent = s.emotion ? `AI 覺得比較像「${s.emotion}」，你可以改。` : '自己選一個就好。';
-  $('ai-word').textContent = s.word ? `AI 建議「${s.word}」，你可以改。` : '想一個字就好。';
+  // 空的就直接填；你已經填了別的，就給一個「換成」按鈕，不偷偷蓋掉
   if (s.emotion && !form.emotion.value) form.querySelector(`input[value="${s.emotion}"]`).checked = true;
   if (s.word && !$('word').value) $('word').value = s.word;
+  hint('ai-emotion', s.emotion, () => form.emotion.value, v => form.querySelector(`input[value="${v}"]`).checked = true, '自己選一個就好。');
+  hint('ai-word', s.word, () => $('word').value, v => $('word').value = v, '想一個字就好。');
+}
+function hint(id, suggestion, current, apply, fallback) {
+  const el = $(id);
+  if (!suggestion) { el.textContent = fallback; return; }
+  if (suggestion === current()) { el.textContent = `AI 也覺得是「${suggestion}」。`; return; }
+  el.textContent = `你選了「${current()}」，AI 建議「${suggestion}」。`;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'link-button'; b.textContent = `換成「${suggestion}」`;
+  b.addEventListener('click', () => { apply(suggestion); hint(id, suggestion, current, apply, fallback); });
+  el.append(' ', b);
 }
 
 // 歌：iTunes 搜尋（經過我們自己的後端）

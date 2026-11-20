@@ -28,13 +28,14 @@ SUGGEST_SCHEMA = {
 }
 
 
-def _chat(prompt, fmt=None):
+def _chat(prompt, fmt=None, max_tokens=80):
     resp = _client.chat(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
         format=fmt,
-        think=False,
-        options={"temperature": 0.4},
+        think=False,                       # 思考模式會跑超過 90 秒，關掉
+        keep_alive="1m",                   # 用完 1 分鐘就釋放記憶體（預設 5 分鐘）
+        options={"temperature": 0.4, "num_predict": max_tokens},  # 限制長度，GPU 少忙一點
     )
     return resp.message.content or ""
 
@@ -101,7 +102,7 @@ def weekly_review(entries, letters_answered):
         + "\n" + "\n".join(days)
     )
     try:
-        text = _chat(prompt).strip()
+        text = _chat(prompt, max_tokens=600).strip()
     except Exception as e:
         print(f"[ai] weekly_review 失敗：{e}")
         return None
