@@ -268,9 +268,9 @@ def save_entry():
     emotion = data.get("emotion")
     if emotion not in ai.EMOTIONS:
         abort(400, "請選一個情緒")
-    word = text(data, "word", 1)
-    if word and not ai.is_one_han(word):
-        abort(400, "今日一字只能是一個中文字")
+    word = text(data, "word", 2)
+    if word and not ai.is_word(word):
+        abort(400, "今日一字要是 1～2 個中文字")
 
     old = get_entry(day)
     e = {

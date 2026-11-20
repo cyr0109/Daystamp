@@ -124,7 +124,7 @@ input[type=range] { width: 100%; accent-color: var(--ink); }
 .chip:has(input:checked) { border-color: var(--ink); background: var(--ink); color: var(--paper); }
 .chip:has(input:focus-visible) { outline: 2px solid var(--seal); outline-offset: 2px; }
 
-.word-input { font-family: var(--kai); font-size: 4rem !important; width: 5.5rem !important; text-align: center; }
+.word-input { font-family: var(--kai); font-size: 4rem !important; width: 9.5rem !important; text-align: center; }
 
 .song-results { list-style: none; padding: 0; margin: 0; display: grid; gap: .25rem; }
 .song-results button {
@@ -149,6 +149,9 @@ audio { height: 2rem; max-width: 100%; }
 }
 .seal-w { align-self: end; font-size: 2.1rem; line-height: 1.15; }
 .seal-d { border-block: 1.5px solid var(--seal); font-size: .8rem; line-height: 1.55; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+/* 兩個字的時候縮小，塞進同一個圓 */
+.seal-w.two { font-size: 1.45rem; letter-spacing: -.02em; }
+.cal-seal.two, .mini-seal.two { font-size: .75rem; letter-spacing: -.04em; }
 .is-stamping { animation: stamp .55s cubic-bezier(.2, .9, .3, 1.2) both; }
 @keyframes stamp {
   0% { transform: rotate(-6deg) scale(1.8); opacity: 0; }

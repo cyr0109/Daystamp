@@ -4,7 +4,7 @@
 <article class="day">
   <header class="day-head">
     <div class="seal" aria-label="今日一字">
-      <span class="seal-w">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
+      <span class="seal-w{% if (entry.word or '')|length == 2 %} two{% endif %}">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
     </div>
     <div>
       <h1>{{ entry.day }}　{{ entry.day|weekday }}</h1>

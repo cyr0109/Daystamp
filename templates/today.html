@@ -15,7 +15,7 @@
     {% if entry %}
     <section class="done" aria-label="今天的紀錄">
       <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今日一字">
-        <span class="seal-w">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
+        <span class="seal-w{% if (entry.word or '')|length == 2 %} two{% endif %}">{{ entry.word or '・' }}</span><span class="seal-d">{{ entry.day[2:]|replace('-', '.') }}</span><span></span>
       </div>
       <div>
         <p class="done-win">{{ entry.small_win }}</p>
@@ -78,9 +78,9 @@
       </section>
 
       <section class="step" data-key="word" hidden>
-        <label class="q" for="word">用一個字形容今天</label>
+        <label class="q" for="word">用一兩個字形容今天</label>
         <p id="ai-word" class="hint" aria-live="polite"></p>
-        <input id="word" class="word-input" maxlength="1" autocomplete="off">
+        <input id="word" class="word-input" maxlength="2" autocomplete="off">
       </section>
 
       <p id="flow-error" class="error" role="alert"></p>
@@ -200,7 +200,7 @@ async function askAI() {
   if (s.emotion && !form.emotion.value) form.querySelector(`input[value="${s.emotion}"]`).checked = true;
   if (s.word && !$('word').value) $('word').value = s.word;
   hint('ai-emotion', s.emotion, () => form.emotion.value, v => form.querySelector(`input[value="${v}"]`).checked = true, '自己選一個就好。');
-  hint('ai-word', s.word, () => $('word').value, v => $('word').value = v, '想一個字就好。');
+  hint('ai-word', s.word, () => $('word').value, v => $('word').value = v, '想一兩個字就好。');
 }
 function hint(id, suggestion, current, apply, fallback) {
   const el = $(id);

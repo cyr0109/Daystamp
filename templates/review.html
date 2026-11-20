@@ -27,7 +27,7 @@
   {% for e in entries %}
     <li style="--mood: {{ e.mood }}">
       <a href="/day/{{ e.day }}">
-        <span class="mini-seal">{{ e.word or '・' }}</span>
+        <span class="mini-seal{% if (e.word or '')|length == 2 %} two{% endif %}">{{ e.word or '・' }}</span>
         <span><span class="meta">{{ e.day[5:] }}　{{ e.day|weekday }}　心情 {{ e.mood }}，{{ e.emotion }}</span><br>{{ e.small_win }}</span>
       </a>
     </li>

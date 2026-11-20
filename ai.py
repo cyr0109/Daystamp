@@ -1,7 +1,7 @@
 """本機 AI（Ollama）。
 
 安全原則：AI 的輸出只當「資料」，絕不執行。
-- 標籤必須在白名單內，一字必須剛好是一個中文字，不合格就丟掉
+- 標籤必須在白名單內，今日一字必須是 1～2 個中文字，不合格就丟掉
 - 回顧文字只當純文字顯示（模板不會用 |safe）
 - AI 掛了就回傳 None，日記照樣存
 """
@@ -16,7 +16,7 @@ EMOTIONS = ["開心", "平靜", "感恩", "疲累", "焦慮", "難過", "生氣"
 REVIEW_MAX_CHARS = 1200
 
 _client = ollama.Client(timeout=90)
-_ONE_HAN = re.compile(r"^[一-鿿]$")
+_WORD = re.compile(r"^[一-鿿]{1,2}$")   # 今日一字：1～2 個中文字（日付印塞得下）
 
 SUGGEST_SCHEMA = {
     "type": "object",
@@ -40,8 +40,8 @@ def _chat(prompt, fmt=None, max_tokens=80):
     return resp.message.content or ""
 
 
-def is_one_han(s):
-    return isinstance(s, str) and bool(_ONE_HAN.match(s))
+def is_word(s):
+    return isinstance(s, str) and bool(_WORD.match(s))
 
 
 def clean_suggestion(raw):
@@ -57,7 +57,7 @@ def clean_suggestion(raw):
     word = data.get("word")
     return {
         "emotion": emotion if emotion in EMOTIONS else None,
-        "word": word.strip() if isinstance(word, str) and is_one_han(word.strip()) else None,
+        "word": word.strip() if isinstance(word, str) and is_word(word.strip()) else None,
     }
 
 
@@ -72,7 +72,8 @@ def suggest(entry):
     prompt = (
         "你是一個日記助手。讀完下面這個人今天的紀錄，回傳 JSON：\n"
         f"- emotion：只能從這 8 個詞裡原封不動挑一個，不可以用其他詞：{'、'.join(EMOTIONS)}\n"
-        "- word：用「一個」繁體中文字形容這一天（例如：累、暖、爽、忙）\n\n"
+        "- word：只回「一個」詞（字串，不是陣列），長度 1 或 2 個繁體中文字，"
+        "形容這個人今天整體的感覺（是感覺，不是發生的事情或物品）。要從下面的紀錄去體會\n\n"
         + "\n".join(lines)
     )
     try:

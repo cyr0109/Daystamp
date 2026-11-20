@@ -19,7 +19,9 @@ class AIGuardTest(unittest.TestCase):
                     'not json', '[1, 2]', '{"word": 5}']:
             out = ai.clean_suggestion(raw)
             self.assertTrue(out["emotion"] is None or out["emotion"] in ai.EMOTIONS)
-            self.assertTrue(out["word"] is None or ai.is_one_han(out["word"]))
+            self.assertTrue(out["word"] is None or ai.is_word(out["word"]))
+        self.assertEqual(ai.clean_suggestion('{"emotion": "感恩", "word": "感恩"}')["word"], "感恩")
+        self.assertIsNone(ai.clean_suggestion('{"emotion": "感恩", "word": "很感恩"}')["word"])
         self.assertEqual(ai.clean_suggestion('{"emotion": "rm -rf /", "word": "<script>"}'), {"emotion": None, "word": None})
 
     def test_ai_failure_never_raises(self):
@@ -75,6 +77,8 @@ class AppTest(unittest.TestCase):
         self.assertEqual(self.entry(mood=11).status_code, 400)
         self.assertEqual(self.entry(emotion="快樂").status_code, 400)
         self.assertEqual(self.entry(word="ab").status_code, 400)
+        self.assertEqual(self.entry(word="很感恩").status_code, 400)
+        self.assertEqual(self.entry(word="感恩").status_code, 200)
         self.assertEqual(self.entry(small_win="  ").status_code, 400)
         self.entry(song_artwork="https://evil.example.com/x.jpg")
         with diary.app.app_context():

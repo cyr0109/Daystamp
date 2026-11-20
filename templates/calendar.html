@@ -22,7 +22,7 @@
         {% if e %}
           <a href="/day/{{ e.day }}" aria-label="{{ e.day }}，心情 {{ e.mood }}，{{ e.emotion }}">
             <span class="cal-date">{{ c.date.day }}</span>
-            <span class="cal-seal">{{ e.word or '・' }}</span>
+            <span class="cal-seal{% if (e.word or '')|length == 2 %} two{% endif %}">{{ e.word or '・' }}</span>
             {% if e.song_artwork %}<img class="cal-art" src="{{ e.song_artwork }}" alt="">{% endif %}
           </a>
         {% else %}
