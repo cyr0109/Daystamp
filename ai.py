@@ -11,7 +11,7 @@ import json
 
 import ollama
 
-MODEL = os.environ.get("DIARY_MODEL", "qwen3.5:9b")
+MODEL = os.environ.get("DIARY_MODEL", "qwen3.5:4b")   # 4b：比 9b 快一倍、記憶體減半，品質夠用
 EMOTIONS = ["開心", "平靜", "感恩", "疲累", "焦慮", "難過", "生氣", "煩躁"]
 REVIEW_MAX_CHARS = 1200
 
@@ -83,25 +83,38 @@ def suggest(entry):
         return {"emotion": None, "word": None}
 
 
+def _md(day):
+    """2026-11-17 → 11/17（模型會把 11-17 唸成「十一十七日」）"""
+    return f"{int(day[5:7])}/{int(day[8:10])}"
+
+
 def weekly_review(entries, letters_answered):
     """寫一段每週回顧。entries 是這週的紀錄（dict list）。"""
     if not entries:
         return None
     days = []
     for e in entries:
-        days.append(f"{e['day']}｜心情 {e['mood']}｜{e['emotion']}｜做到的事：{e['small_win']}"
+        days.append(f"{_md(e['day'])}｜心情 {e['mood']}｜{e['emotion']}｜做到的事：{e['small_win']}"
                     + (f"｜日記：{e['note'][:200]}" if e.get("note") else ""))
-    prompt = (
-        "你是一個溫暖、不說教的日記助手。下面是一個人這週的紀錄。\n"
-        "請用繁體中文、第二人稱「你」，寫 3 到 5 句的每週回顧：\n"
-        "1. 點出這週做到的小事（具體提到幾件）\n"
-        "2. 描述這週心情的樣子（不要評價好壞）\n"
-        "3. 只有在紀錄裡真的有心情 5 分以下的日子時，才溫和地說那天也做到了什麼\n"
-        "只能根據下面寫到的內容，不要猜測或補充紀錄裡沒有的事。紀錄很少就寫短一點。\n"
-        "不要給建議、不要用條列、不要用 Markdown。\n"
-        + (f"這週也回答了 {letters_answered} 封過去的自己留的問題，順帶提一句。\n" if letters_answered else "")
-        + "\n" + "\n".join(days)
-    )
+    # 小模型不會自己判斷條件，也會為了湊句數編內容：所以句數、低分的日子都由程式先算好
+    sentences = min(len(entries) + 1, 5)
+    low = [e for e in entries if e["mood"] <= 4]
+    rules = [
+        f"用繁體中文、第二人稱「你」，最多 {sentences} 句話。說完就停，不要寫「整體而言」這種總結句。",
+        "說出這週做到的小事，用紀錄裡的原話。",
+        "用一句話描述這週的心情，不評價好壞。",
+    ]
+    if low:
+        rules.append("、".join(_md(e["day"]) for e in low) + " 心情比較低，溫和地提那天還是做到了什麼。")
+    if letters_answered:
+        rules.append(f"這週回答了 {letters_answered} 封過去的自己寄來的信，提一句。")
+    rules += [
+        "只能寫紀錄裡有的事。紀錄沒寫到的感受、事件、天數都不要寫。",
+        "不要寫建議、期許或祝福（例如「希望」、「加油」、「繼續」開頭的句子）。",
+        "不要條列，不要 Markdown。",
+    ]
+    prompt = ("下面是一個人這週的日記紀錄：\n\n" + "\n".join(days)
+              + "\n\n請照這些規則寫一段每週回顧：\n" + "\n".join(f"- {r}" for r in rules))
     try:
         text = _chat(prompt, max_tokens=600).strip()
     except Exception as e:

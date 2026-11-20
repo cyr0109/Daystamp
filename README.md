@@ -42,7 +42,7 @@ AI 的輸出只當資料，絕不執行：
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-ollama pull qwen3.5:9b                 # 想換模型：DIARY_MODEL=其他模型
+ollama pull qwen3.5:4b                 # 想換模型：DIARY_MODEL=其他模型
 .venv/bin/flask --app app init-db      # ⚠️ 會清空 diary.db
 .venv/bin/python app.py                # 打開 http://127.0.0.1:5050
 ```
@@ -54,4 +54,4 @@ ollama pull qwen3.5:9b                 # 想換模型：DIARY_MODEL=其他模型
 
 ## 技術
 
-Flask + SQLite + Jinja + 原生 JS，不用打包工具。Ollama（預設 `qwen3.5:9b`）。
+Flask + SQLite + Jinja + 原生 JS，不用打包工具。Ollama（預設 `qwen3.5:4b`）。
