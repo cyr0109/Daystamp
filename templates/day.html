@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.day }}　日日{% endblock %}
+{% block content %}
+<article class="day">
+  <header class="day-head">
+    <div class="seal" aria-label="今日一字">{{ entry.word or '・' }}</div>
+    <div>
+      <h1>{{ entry.day }}　{{ entry.day|weekday }}</h1>
+      <p class="meta">心情 {{ entry.mood }}，{{ entry.emotion }}{% if entry.weather %}　{{ entry.weather }}{% endif %}</p>
+    </div>
+  </header>
+
+  <p class="day-win">{{ entry.small_win }}</p>
+
+  {% if entry.breakfast or entry.lunch or entry.dinner %}
+  <dl class="meals-list">
+    {% for k, label in [('breakfast', '早餐'), ('lunch', '午餐'), ('dinner', '晚餐')] if entry[k] %}
+      <div><dt>{{ label }}</dt><dd>{{ entry[k] }}</dd></div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+
+  {% if entry.song_title %}
+  <div class="song-picked">
+    {% if entry.song_artwork %}<img src="{{ entry.song_artwork }}" alt="{{ entry.song_title }} 封面">{% endif %}
+    <div>
+      <p>{{ entry.song_title }}{% if entry.song_artist %}　{{ entry.song_artist }}{% endif %}</p>
+      {% if entry.song_preview %}<audio controls preload="none" src="{{ entry.song_preview }}"></audio>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if entry.note %}<div class="note">{{ entry.note }}</div>{% endif %}
+
+  <p class="meta">
+    <a href="/calendar?month={{ entry.day[:7] }}">回到 {{ entry.day[5:7]|int }} 月的日曆</a>
+    {% if is_today %}　<a href="/">修改今天的紀錄</a>{% endif %}
+  </p>
+</article>
+{% endblock %}

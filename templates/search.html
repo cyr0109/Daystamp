@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}搜尋　日日{% endblock %}
+{% block content %}
+<h1>搜尋</h1>
+<form action="/search" method="get" class="search-form" role="search">
+  <label class="sr-only" for="q">要找什麼</label>
+  <input id="q" name="q" value="{{ q }}" maxlength="50" placeholder="拉麵、考試、累……" autofocus>
+  <button class="ink-button">搜尋</button>
+</form>
+
+{% if q %}
+  {% if rows %}
+    <p class="meta">找到 {{ rows|length }} 天。</p>
+    <ol class="week-list">
+    {% for e in rows %}
+      <li style="--mood: {{ e.mood }}">
+        <a href="/day/{{ e.day }}">
+          <span class="mini-seal">{{ e.word or '・' }}</span>
+          <span><span class="meta">{{ e.day }}　心情 {{ e.mood }}，{{ e.emotion }}</span><br>{{ e.small_win }}</span>
+        </a>
+      </li>
+    {% endfor %}
+    </ol>
+  {% else %}
+    <p class="empty">沒有提到「{{ q }}」的日子。換個詞試試。</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}給未來的信　日日{% endblock %}
+{% block content %}
+<h1>給未來的自己</h1>
+<p class="hint">問一個問題，選一個日子寄出。送到之前，你自己也看不到。</p>
+
+<form id="letter-form" class="letter-form" novalidate>
+  <label class="sr-only" for="question">問題</label>
+  <textarea id="question" rows="3" maxlength="300" placeholder="一年後，你還在擔心今天擔心的事嗎？"></textarea>
+  <fieldset class="chips">
+    <legend class="hint">多久後送到？</legend>
+    {% for days, label in delays.items() %}
+      <label class="chip"><input type="radio" name="after" value="{{ days }}" {% if days == '365' %}checked{% endif %}>{{ label }}</label>
+    {% endfor %}
+    <label class="chip"><input type="radio" name="after" value="date">自己挑日期</label>
+    <input type="date" id="date" min="{{ min_date }}" aria-label="送達日期" hidden>
+  </fieldset>
+  <p id="letter-status" class="error" role="alert"></p>
+  <button class="ink-button">封起來寄出</button>
+</form>
+
+<section aria-labelledby="transit-title">
+  <h2 id="transit-title">還在路上</h2>
+  {% if in_transit %}
+    <p>有 {{ in_transit|length }} 封還在路上，下一封會在 {{ in_transit[0].deliver_day }} 送到。</p>
+  {% else %}
+    <p class="meta">現在沒有在路上的信。</p>
+  {% endif %}
+</section>
+
+{% if arrived %}
+<section aria-labelledby="arrived-title">
+  <h2 id="arrived-title">已經送到的</h2>
+  <ul class="week-list">
+  {% for l in arrived %}
+    <li><a href="/letters/{{ l.id }}">
+      <span class="mini-seal">{{ '答' if l.answer else '信' }}</span>
+      <span><span class="meta">{{ l.asked_day }} 寄出{% if not l.answer %}，還沒回答{% endif %}</span><br>{{ l.question }}</span>
+    </a></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const lf = document.getElementById('letter-form');
+const dateInput = document.getElementById('date');
+lf.addEventListener('change', () => dateInput.hidden = lf.after.value !== 'date');
+lf.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const status = document.getElementById('letter-status');
+  const question = document.getElementById('question').value.trim();
+  if (!question) { status.textContent = '先寫一個問題。'; return; }
+  const body = {question, after: lf.after.value, date: dateInput.value};
+  try {
+    const r = await postJSON('/api/letters', body);
+    status.textContent = '';
+    lf.reset(); dateInput.hidden = true;
+    lf.querySelector('button').textContent = `寄出了，${r.deliver_day} 送到。再寫一封`;
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) { status.textContent = e.message; }
+});
+</script>
+{% endblock %}

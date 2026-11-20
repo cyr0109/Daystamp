@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}日日{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="tabs" aria-label="主選單">
+    <a class="brand" href="/">日日</a>
+    {% set here = request.path %}
+    <a href="/" {% if here == '/' %}aria-current="page"{% endif %}>今天</a>
+    <a href="/calendar" {% if here.startswith('/calendar') or here.startswith('/day') %}aria-current="page"{% endif %}>日曆</a>
+    <a href="/review" {% if here.startswith('/review') %}aria-current="page"{% endif %}>回顧</a>
+    <a href="/letters" {% if here.startswith('/letters') %}aria-current="page"{% endif %}>信</a>
+    <a href="/search" {% if here.startswith('/search') %}aria-current="page"{% endif %}>搜尋</a>
+  </nav>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    // 所有寫入都用 JSON（後端只收 JSON，順便擋掉跨站送表單）
+    async function postJSON(url, body) {
+      const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || '存不起來，再試一次');
+      return data;
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

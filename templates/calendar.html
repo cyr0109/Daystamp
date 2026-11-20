@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_plant.html" import plant as draw_plant %}
+{% block title %}{{ first.year }} 年 {{ first.month }} 月　日日{% endblock %}
+{% block content %}
+<header class="month-head">
+  <a href="/calendar?month={{ prev }}" class="link-button" aria-label="上個月">‹</a>
+  <h1>{{ first.year }} 年 {{ first.month }} 月</h1>
+  <a href="/calendar?month={{ next }}" class="link-button" aria-label="下個月">›</a>
+</header>
+<p class="meta center">這個月寫了 {{ count }} 天。藍色越濃，那天心情越好。</p>
+
+<div class="cal-scroll">
+<table class="cal">
+  <thead><tr>{% for w in "一二三四五六日" %}<th scope="col">{{ w }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for week in weeks %}
+    <tr>
+    {% for c in week %}
+      {% set e = c.entry %}
+      <td class="{% if not c.in_month %}is-out{% endif %}{% if c.is_today %} is-today{% endif %}{% if e %} has-entry{% endif %}"
+          {% if e %}style="--mood: {{ e.mood }}"{% endif %}>
+        {% if e %}
+          <a href="/day/{{ e.day }}" aria-label="{{ e.day }}，心情 {{ e.mood }}，{{ e.emotion }}">
+            <span class="cal-date">{{ c.date.day }}</span>
+            <span class="cal-seal">{{ e.word or '・' }}</span>
+            {% if e.song_artwork %}<img class="cal-art" src="{{ e.song_artwork }}" alt="">{% endif %}
+          </a>
+        {% else %}
+          <span class="cal-date">{{ c.date.day }}</span>
+        {% endif %}
+      </td>
+    {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<section class="greenhouse" aria-labelledby="gh-title">
+  <h2 id="gh-title">溫室</h2>
+  {% if plant.greenhouse %}
+    <ul class="pots">
+    {% for p in plant.greenhouse %}
+      <li>{{ draw_plant(5, p.color, false, 72) }}<span class="meta">{{ p.from[5:] }} 到 {{ p.to[5:] }}</span></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="meta">每寫滿 100 天，植物會結種子，那一盆就搬進溫室。現在這盆寫了 {{ plant.grown }} 天。</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% from "_plant.html" import plant as draw_plant %}
+{% block content %}
+<div class="with-margin">
+  <div>
+    <p class="dateline">{{ day }}　{{ day|weekday }}</p>
+
+    {% for l in due %}
+    <a class="letter-arrived" href="/letters/{{ l.id }}">
+      <span class="letter-mark" aria-hidden="true">信</span>
+      <span>{{ l.asked_day }} 的你留了一題給你。<u>打開來回答</u></span>
+    </a>
+    {% endfor %}
+
+    {% if entry %}
+    <section class="done" aria-label="今天的紀錄">
+      <div class="seal{% if saved %} is-stamping{% endif %}" aria-label="今日一字">{{ entry.word or '今' }}</div>
+      <div>
+        <p class="done-win">{{ entry.small_win }}</p>
+        <p class="meta">心情 {{ entry.mood }}，{{ entry.emotion }}{% if entry.weather %}　{{ entry.weather }}{% endif %}</p>
+        {% if entry.song_title %}<p class="meta">♪ {{ entry.song_title }}{% if entry.song_artist %}　{{ entry.song_artist }}{% endif %}</p>{% endif %}
+        <button type="button" class="link-button" id="edit">修改今天的紀錄</button>
+      </div>
+    </section>
+    {% endif %}
+
+    <form id="flow" class="flow" {% if entry %}hidden{% endif %} novalidate>
+      <p class="progress" aria-live="polite"><span id="step-no">1</span> / 7</p>
+
+      <section class="step" data-key="small_win">
+        <label class="q" for="small_win">今天做到了什麼小事？</label>
+        <p class="hint">一句話就好。回了一封信、把衣服摺好，都算。</p>
+        <textarea id="small_win" rows="2" maxlength="200" data-enter="next"></textarea>
+      </section>
+
+      <section class="step" data-key="mood" hidden>
+        <label class="q" for="mood">今天心情幾分？</label>
+        <p class="hint">1 是很糟，10 是很棒。可以直接按數字鍵。</p>
+        <output id="mood-out" class="mood-big" for="mood">6</output>
+        <input id="mood" type="range" min="1" max="10" value="6">
+      </section>
+
+      <section class="step" data-key="meals" hidden>
+        <p class="q">今天吃了什麼？</p>
+        <p class="hint">選填。想不起來就跳過。</p>
+        <div class="meals">
+          <label>早餐<input id="breakfast" maxlength="100" placeholder="飯糰、豆漿"></label>
+          <label>午餐<input id="lunch" maxlength="100"></label>
+          <label>晚餐<input id="dinner" maxlength="100"></label>
+        </div>
+      </section>
+
+      <section class="step" data-key="song" hidden>
+        <label class="q" for="song-q">今天的歌是哪一首？</label>
+        <p class="hint">選填。打歌名或歌手，從結果裡挑一首。</p>
+        <input id="song-q" maxlength="100" autocomplete="off">
+        <p id="song-status" class="hint" aria-live="polite"></p>
+        <ul id="song-results" class="song-results"></ul>
+        <div id="song-picked" class="song-picked" hidden></div>
+      </section>
+
+      <section class="step" data-key="note" hidden>
+        <label class="q" for="note">還想多寫一點嗎？</label>
+        <p class="hint">選填。寫完按 ⌘ + Enter 到下一題。</p>
+        <textarea id="note" rows="6" maxlength="5000"></textarea>
+      </section>
+
+      <section class="step" data-key="emotion" hidden>
+        <p class="q" id="emotion-q">比較接近哪種感覺？</p>
+        <p id="ai-emotion" class="hint" aria-live="polite"></p>
+        <div class="chips" role="radiogroup" aria-labelledby="emotion-q">
+          {% for e in emotions %}
+          <label class="chip" style="--chip: {{ emotion_colors[e] }}"><input type="radio" name="emotion" value="{{ e }}">{{ e }}</label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="step" data-key="word" hidden>
+        <label class="q" for="word">用一個字形容今天</label>
+        <p id="ai-word" class="hint" aria-live="polite"></p>
+        <input id="word" class="word-input" maxlength="1" autocomplete="off">
+      </section>
+
+      <p id="flow-error" class="error" role="alert"></p>
+      <div class="flow-nav">
+        <button type="button" id="back" class="link-button">上一題</button>
+        <button type="submit" id="next" class="ink-button">下一題</button>
+      </div>
+    </form>
+
+    {% if memory %}
+    <a class="memory" href="/day/{{ memory.day }}">
+      <span class="meta">{{ memory_days_ago }} 天前的你</span>
+      <span class="memory-win">{{ memory.small_win }}</span>
+    </a>
+    {% endif %}
+  </div>
+
+  <aside class="margin" aria-label="你的植物">
+    {{ draw_plant(plant.stage, plant.color, plant.asleep, 140) }}
+    {% if plant.asleep %}
+      <p class="meta">它在睡覺。寫一篇就會醒來。</p>
+    {% elif plant.total == 0 %}
+      <p class="meta">寫下第一篇，它就會發芽。</p>
+    {% else %}
+      <p class="meta">這盆寫了 {{ plant.grown }} 天，{{ plant.stage_name }}中。</p>
+    {% endif %}
+    <a class="meta" href="/letters">留一題給未來的自己</a>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DAY = {{ day|tojson }};
+const existing = {{ entry|tojson }};
+const form = document.getElementById('flow');
+const steps = [...form.querySelectorAll('.step')];
+const $ = id => document.getElementById(id);
+let at = 0, song = null, suggestedFor = null;
+
+function show(i) {
+  at = Math.max(0, Math.min(i, steps.length - 1));
+  steps.forEach((s, j) => s.hidden = j !== at);
+  $('step-no').textContent = at + 1;
+  $('back').style.visibility = at === 0 ? 'hidden' : 'visible';
+  $('next').textContent = at === steps.length - 1 ? '存起來' : (isOptional() ? '下一題（可跳過）' : '下一題');
+  $('flow-error').textContent = '';
+  const key = steps[at].dataset.key;
+  if (key === 'emotion' || key === 'word') askAI();
+  steps[at].querySelector('textarea, input:not([type=radio])')?.focus();
+}
+const isOptional = () => ['meals', 'song', 'note'].includes(steps[at].dataset.key);
+
+function collect() {
+  const v = id => $(id).value.trim();
+  return {
+    day: DAY, small_win: v('small_win'), mood: Number($('mood').value),
+    breakfast: v('breakfast'), lunch: v('lunch'), dinner: v('dinner'),
+    song_title: song?.title || v('song-q'), song_artist: song?.artist || '',
+    song_artwork: song?.artwork || '', song_preview: song?.preview || '',
+    note: v('note'), emotion: form.emotion.value, word: v('word'),
+  };
+}
+
+function check() {
+  const key = steps[at].dataset.key;
+  if (key === 'small_win' && !$('small_win').value.trim()) return '寫一件就好，很小也可以。';
+  if (key === 'emotion' && !form.emotion.value) return '選一個最接近的。';
+  return '';
+}
+
+form.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const err = check();
+  if (err) { $('flow-error').textContent = err; return; }
+  if (at < steps.length - 1) return show(at + 1);
+  $('next').disabled = true;
+  try {
+    await postJSON('/api/entry', collect());
+    location.href = '/?saved=1';
+  } catch (e) {
+    $('flow-error').textContent = e.message;
+    $('next').disabled = false;
+  }
+});
+$('back').addEventListener('click', () => show(at - 1));
+
+// Enter 到下一題；長的日記要 ⌘/Ctrl + Enter
+form.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' || ev.isComposing) return;   // 注音選字中的 Enter 不算
+  const t = ev.target;
+  if (t.id === 'song-q') { ev.preventDefault(); return; }
+  if (t.tagName === 'TEXTAREA' && t.dataset.enter !== 'next' && !(ev.metaKey || ev.ctrlKey)) return;
+  if (t.tagName === 'TEXTAREA' && ev.shiftKey) return;
+  ev.preventDefault();
+  form.requestSubmit();
+});
+
+// 心情：滑桿或數字鍵（0 = 10）
+$('mood').addEventListener('input', () => $('mood-out').textContent = $('mood').value);
+document.addEventListener('keydown', ev => {
+  if (steps[at].dataset.key !== 'mood' || !/^[0-9]$/.test(ev.key)) return;
+  $('mood').value = ev.key === '0' ? 10 : ev.key;
+  $('mood-out').textContent = $('mood').value;
+});
+
+// AI 建議：只在內容變了才問一次
+async function askAI() {
+  const data = collect();
+  const sig = JSON.stringify([data.small_win, data.mood, data.note, data.breakfast, data.lunch, data.dinner, data.song_title]);
+  if (sig === suggestedFor) return;
+  suggestedFor = sig;
+  $('ai-emotion').textContent = $('ai-word').textContent = 'AI 正在讀今天的紀錄……';
+  let s = {};
+  try { s = await postJSON('/api/suggest', data); } catch (e) {}
+  $('ai-emotion').textContent = s.emotion ? `AI 覺得比較像「${s.emotion}」，你可以改。` : '自己選一個就好。';
+  $('ai-word').textContent = s.word ? `AI 建議「${s.word}」，你可以改。` : '想一個字就好。';
+  if (s.emotion && !form.emotion.value) form.querySelector(`input[value="${s.emotion}"]`).checked = true;
+  if (s.word && !$('word').value) $('word').value = s.word;
+}
+
+// 歌：iTunes 搜尋（經過我們自己的後端）
+let songTimer;
+$('song-q').addEventListener('input', () => {
+  song = null; $('song-picked').hidden = true;
+  clearTimeout(songTimer);
+  const q = $('song-q').value.trim();
+  if (!q) { $('song-results').replaceChildren(); $('song-status').textContent = ''; return; }
+  songTimer = setTimeout(() => searchSong(q), 400);
+});
+async function searchSong(q) {
+  $('song-status').textContent = '搜尋中……';
+  const r = await fetch('/api/song?q=' + encodeURIComponent(q));
+  const list = await r.json().catch(() => ({error: '現在搜不到歌，可以直接打歌名'}));
+  if (!Array.isArray(list)) { $('song-status').textContent = list.error; return; }
+  $('song-status').textContent = list.length ? '' : '找不到。直接留著你打的歌名也可以。';
+  $('song-results').replaceChildren(...list.map(s => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (s.artwork) { const img = new Image(); img.src = s.artwork; img.alt = ''; b.append(img); }
+    const t = document.createElement('span');
+    t.textContent = `${s.title}　${s.artist || ''}`;
+    b.append(t);
+    b.addEventListener('click', () => pickSong(s));
+    li.append(b);
+    return li;
+  }));
+}
+function pickSong(s) {
+  song = s;
+  $('song-results').replaceChildren();
+  const box = $('song-picked');
+  box.replaceChildren();
+  if (s.artwork) { const img = new Image(); img.src = s.artwork; img.alt = `${s.title} 封面`; box.append(img); }
+  const info = document.createElement('div');
+  const p = document.createElement('p'); p.textContent = `${s.title}　${s.artist || ''}`; info.append(p);
+  if (s.preview) { const a = document.createElement('audio'); a.controls = true; a.src = s.preview; a.preload = 'none'; info.append(a); }
+  box.append(info);
+  box.hidden = false;
+}
+
+// 修改：把今天的資料填回去
+function fill(e) {
+  for (const k of ['small_win', 'breakfast', 'lunch', 'dinner', 'note', 'word']) $(k).value = e[k] || '';
+  $('mood').value = e.mood; $('mood-out').textContent = e.mood;
+  form.querySelector(`input[value="${e.emotion}"]`).checked = true;
+  if (e.song_title) {
+    $('song-q').value = e.song_title;
+    pickSong({title: e.song_title, artist: e.song_artist, artwork: e.song_artwork, preview: e.song_preview});
+  }
+}
+$('edit')?.addEventListener('click', () => {
+  fill(existing);
+  document.querySelector('.done').hidden = true;
+  form.hidden = false;
+  show(0);
+});
+
+if (!existing) show(0);
+</script>
+{% endblock %}

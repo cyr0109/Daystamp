@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}過去的你寄來的信　日日{% endblock %}
+{% block content %}
+<h1>{{ days }} 天前的你問：</h1>
+<div class="then-now">
+  <section class="then" aria-label="當時">
+    <p class="letter-q">{{ letter.question }}</p>
+    <p class="meta">{{ letter.asked_day }} 寄出</p>
+    {% if then %}
+      <a class="memory" href="/day/{{ then.day }}">
+        <span class="meta">那天心情 {{ then.mood }}，{{ then.emotion }}{% if then.word %}，一字「{{ then.word }}」{% endif %}</span>
+        <span class="memory-win">{{ then.small_win }}</span>
+      </a>
+    {% endif %}
+  </section>
+
+  <section class="now" aria-label="現在">
+    {% if letter.answer %}
+      <p class="letter-a">{{ letter.answer }}</p>
+      <p class="meta">{{ letter.answered_day }} 回答</p>
+      <p><a href="/letters">也留一題給未來的自己</a></p>
+    {% else %}
+      <form id="answer-form" novalidate>
+        <label class="hint" for="answer">現在的你怎麼回答？</label>
+        <textarea id="answer" rows="6" maxlength="3000"></textarea>
+        <p id="answer-status" class="error" role="alert"></p>
+        <button class="ink-button">回答</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('answer-form')?.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const answer = document.getElementById('answer').value.trim();
+  const status = document.getElementById('answer-status');
+  if (!answer) { status.textContent = '寫一點點也好。'; return; }
+  try {
+    await postJSON('/api/letters/{{ letter.id }}/answer', {answer});
+    location.reload();
+  } catch (e) { status.textContent = e.message; }
+});
+</script>
+{% endblock %}
